@@ -7,6 +7,7 @@ import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -28,12 +29,9 @@ class SubTrackViewModel(private val repository: SubscriptionRepository) : ViewMo
         )
 
     val totalSaved: StateFlow<Double> =
-        repository.totalSaved.stateIn(
+        repository.totalSaved.map { it ?: 0.0 }.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0
-        ).let { flow ->
-            kotlinx.coroutines.flow.map(flow) { it ?: 0.0 }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-        }
+        )
 
     fun addSubscription(subscription: Subscription) = viewModelScope.launch {
         repository.add(subscription)

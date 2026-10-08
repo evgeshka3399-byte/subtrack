@@ -1,5 +1,6 @@
 package com.subtrack.app.ui.screens
-
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -66,7 +67,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                     Modifier
                         .padding(4.dp)
                         .size(10.dp)
-                        .background(color, androidx.compose.foundation.shape.CircleShape)
+                        .background(color, CircleShape)
                 )
             }
         }

@@ -25,16 +25,15 @@ fun SettingsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit) {
         }
     ) { padding ->
         Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
+            Modifier.fillMaxSize().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Настройки будут здесь", style = MaterialTheme.typography.titleMedium)
-            Text("Тема, напоминания, экспорт данных — в следующей версии.",
+            Text(
+                "Тема, напоминания, экспорт данных — в следующей версии.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

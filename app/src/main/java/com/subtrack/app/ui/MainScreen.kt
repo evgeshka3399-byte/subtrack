@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -66,7 +67,7 @@ fun MainScreen(viewModel: SubTrackViewModel) {
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            TabRow(
+            PrimaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.primary
@@ -82,9 +83,11 @@ fun MainScreen(viewModel: SubTrackViewModel) {
                                 )
                             }
                         },
+                        modifier = Modifier.fillMaxWidth(),
                         text = {
                             Text(
                                 title,
+                                textAlign = TextAlign.Center,
                                 fontWeight = if (pagerState.currentPage == index)
                                     FontWeight.Bold else FontWeight.Normal
                             )

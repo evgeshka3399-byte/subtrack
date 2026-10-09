@@ -54,5 +54,5 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // RuStore Pay SDK
-    implementation("ru.rustore.sdk:billingclient:10.1.0")
+    implementation("ru.rustore.sdk:billingclient:11.1.0")
 }

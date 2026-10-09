@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.sp
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.util.calculateMonthlyTotal
 import com.subtrack.app.util.calculateYearlyTotal
+import com.subtrack.app.util.formatMoney
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
@@ -25,64 +25,82 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     val monthlyTotal = calculateMonthlyTotal(subscriptions)
     val yearlyTotal = calculateYearlyTotal(subscriptions)
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("SubTrack") }) }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
         ) {
+            Column(Modifier.padding(20.dp)) {
+                Text("В месяц", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "${formatMoney(monthlyTotal)} ₽",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "В год: ${formatMoney(yearlyTotal)} ₽",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        if (totalSaved > 0) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
             ) {
                 Column(Modifier.padding(20.dp)) {
-                    Text("В месяц", style = MaterialTheme.typography.labelMedium)
+                    Text("Ты уже сэкономил", style = MaterialTheme.typography.labelMedium)
                     Text(
-                        "${"%.0f".format(monthlyTotal)} ₽",
-                        fontSize = 32.sp,
+                        "${formatMoney(totalSaved)} ₽",
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(Modifier.height(8.dp))
-                    Text("В год: ${"%.0f".format(yearlyTotal)} ₽", style = MaterialTheme.typography.bodyMedium)
                 }
             }
+        }
 
-            if (totalSaved > 0) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        Text("Активные подписки", style = MaterialTheme.typography.titleLarge)
+        Text("Всего: ${subscriptions.size}", style = MaterialTheme.typography.bodyMedium)
+
+        if (subscriptions.isEmpty()) {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(Modifier.padding(20.dp)) {
-                        Text("Ты уже сэкономил", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            "${"%.0f".format(totalSaved)} ₽",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Нажми «+», чтобы добавить первую",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-
-            Text("Активные подписки", style = MaterialTheme.typography.titleLarge)
-            Text("Всего: ${subscriptions.size}", style = MaterialTheme.typography.bodyMedium)
-
-            if (subscriptions.isEmpty()) {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(8.dp))
-                        Text("Нажми «+», чтобы добавить первую", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            } else {
-                Button(onClick = onShowList, modifier = Modifier.fillMaxWidth()) {
-                    Text("Показать все подписки")
-                }
+        } else {
+            Button(
+                onClick = onShowList,
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Показать все подписки")
             }
         }
     }

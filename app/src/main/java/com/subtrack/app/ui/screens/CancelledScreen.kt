@@ -12,49 +12,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.ui.SubTrackViewModel
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CancelledScreen(viewModel: SubTrackViewModel) {
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
-    val totalSaved by viewModel.totalSaved.collectAsState()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Отменённые") }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+    if (cancelled.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                "Пока ничего не отменено",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(cancelled, key = { it.id }) { sub ->
             Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
             ) {
-                Column(Modifier.padding(20.dp)) {
-                    Text("Сэкономлено", style = MaterialTheme.typography.labelMedium)
-                    Text("${"%.0f".format(totalSaved)} ₽", style = MaterialTheme.typography.headlineMedium)
-                }
-            }
-            if (cancelled.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Пока ничего не отменено")
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Row(
+                    Modifier.padding(16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    items(cancelled, key = { it.id }) { sub ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Row(
-                                Modifier.padding(16.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(sub.name, style = MaterialTheme.typography.titleMedium)
-                                    Text("${"%.0f".format(sub.price)} ${sub.currency} · ${cycleLabel(sub.cycle)}")
-                                }
-                                TextButton(onClick = { viewModel.restoreSubscription(sub) }) {
-                                    Text("Восстановить")
-                                }
-                            }
-                        }
+                    Column(Modifier.weight(1f)) {
+                        Text(sub.name, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "${com.subtrack.app.util.formatMoney(sub.price)} ${sub.currency}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = { viewModel.restoreSubscription(sub) }) {
+                        Text("Восстановить")
                     }
                 }
             }

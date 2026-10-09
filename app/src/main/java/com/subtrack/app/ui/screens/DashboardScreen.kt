@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +18,9 @@ import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.components.BarChart
 import com.subtrack.app.ui.components.CategoryBreakdown
 import com.subtrack.app.ui.components.ChartSlice
+import com.subtrack.app.ui.components.LineChart
 import com.subtrack.app.ui.components.PieChart
+import com.subtrack.app.ui.components.buildForecast
 import com.subtrack.app.ui.theme.CategoryColors
 import com.subtrack.app.util.calculateMonthlyTotal
 import com.subtrack.app.util.calculateYearlyTotal
@@ -35,15 +38,22 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     var chartMode by remember { mutableStateOf(ChartMode.PIE) }
 
     val slices = remember(subscriptions) {
-        val grouped = subscriptions.groupBy { it.category }
-        grouped.map { (category, subs) ->
-            ChartSlice(
-                label = category,
-                value = subs.sumOf { com.subtrack.app.util.monthlyEquivalent(it.price, it.cycle, it.customCycleDays) },
-                color = CategoryColors.colorFor(category)
-            )
-        }.sortedByDescending { it.value }
+        subscriptions.groupBy { it.category }
+            .map { (category, subs) ->
+                ChartSlice(
+                    label = category,
+                    value = subs.sumOf {
+                        com.subtrack.app.util.monthlyEquivalent(
+                            it.price, it.cycle, it.customCycleDays
+                        )
+                    },
+                    color = CategoryColors.colorFor(category)
+                )
+            }
+            .sortedByDescending { it.value }
     }
+
+    val forecast = remember(subscriptions) { buildForecast(subscriptions, 12) }
 
     Column(
         modifier = Modifier
@@ -58,8 +68,11 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("В месяц", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "В месяц",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text(
                     "${formatMoney(monthlyTotal)} ₽",
                     fontSize = 28.sp,
@@ -71,22 +84,28 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
 
-            if (subscriptions.isNotEmpty()) {
-                SingleChoiceSegmentedButtonRow {
-                    SegmentedButton(
-                        selected = chartMode == ChartMode.PIE,
-                        onClick = { chartMode = ChartMode.PIE },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        icon = { Icon(Icons.Default.PieChart, null) }
-                    ) {}
-                    SegmentedButton(
-                        selected = chartMode == ChartMode.BAR,
-                        onClick = { chartMode = ChartMode.BAR },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                        icon = { Icon(Icons.Default.BarChart, null) }
-                    ) {}
-                }
+        if (subscriptions.isNotEmpty()) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = chartMode == ChartMode.PIE,
+                    onClick = { chartMode = ChartMode.PIE },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                    icon = { Icon(Icons.Default.PieChart, null) }
+                ) {}
+                SegmentedButton(
+                    selected = chartMode == ChartMode.BAR,
+                    onClick = { chartMode = ChartMode.BAR },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                    icon = { Icon(Icons.Default.BarChart, null) }
+                ) {}
+                SegmentedButton(
+                    selected = chartMode == ChartMode.LINE,
+                    onClick = { chartMode = ChartMode.LINE },
+                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                    icon = { Icon(Icons.Default.ShowChart, null) }
+                ) {}
             }
         }
 
@@ -99,8 +118,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 )
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Ты уже сэкономил",
-                        style = MaterialTheme.typography.labelMedium)
+                    Text("Ты уже сэкономил", style = MaterialTheme.typography.labelMedium)
                     Text(
                         "${formatMoney(totalSaved)} ₽",
                         fontSize = 24.sp,
@@ -137,12 +155,26 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                     when (chartMode) {
                         ChartMode.PIE -> PieChart(slices = slices, modifier = Modifier.fillMaxSize())
                         ChartMode.BAR -> BarChart(slices = slices, modifier = Modifier.fillMaxSize())
+                        ChartMode.LINE -> LineChart(
+                            points = forecast,
+                            lineColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
             }
 
-            Text("По категориям", style = MaterialTheme.typography.titleMedium)
-            CategoryBreakdown(slices)
+            if (chartMode != ChartMode.LINE) {
+                Text("По категориям", style = MaterialTheme.typography.titleMedium)
+                CategoryBreakdown(slices)
+            } else {
+                Text("Прогноз", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Так будут выглядеть твои траты в следующие 12 месяцев, если ничего не менять.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             Spacer(Modifier.height(8.dp))
             Button(
@@ -156,4 +188,4 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     }
 }
 
-enum class ChartMode { PIE, BAR }
+enum class ChartMode { PIE, BAR, LINE }

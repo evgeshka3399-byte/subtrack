@@ -34,7 +34,7 @@ fun MainScreen(viewModel: SubTrackViewModel) {
     }
 
     val navController = rememberNavController()
-    val tabs = listOf("Главная", "Подписки", "Отменённые", "Сэкономлено")
+   val tabs = listOf("Главная", "Подписки", "Отмены", "Экономия")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val scope = rememberCoroutineScope()
 

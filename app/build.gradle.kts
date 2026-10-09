@@ -36,13 +36,6 @@ android {
     }
 }
 
-// Репозиторий RuStore
-repositories {
-    maven {
-        url = uri("https://artifactory-external.vkpartner.ru/artifactory/rustore-sdk-public")
-    }
-}
-
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")

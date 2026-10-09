@@ -1,98 +1,136 @@
 package com.subtrack.app.ui
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.subtrack.app.ui.screens.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: SubTrackViewModel) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    val context = LocalContext.current
+    var showOnboarding by remember { mutableStateOf(!OnboardingPrefs.hasSeenOnboarding(context)) }
 
-    val bottomItems = listOf(
-        BottomItem("dashboard", "Главная", Icons.Default.Home),
-        BottomItem("list", "Подписки", Icons.Default.List),
-        BottomItem("cancelled", "Отменённые", Icons.Default.Star)
-    )
+    if (showOnboarding) {
+        OnboardingScreen {
+            OnboardingPrefs.setOnboardingSeen(context)
+            showOnboarding = false
+        }
+        return
+    }
+
+    val navController = rememberNavController()
+    val tabs = listOf("Главная", "Подписки", "Отменённые", "Сэкономлено")
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val scope = rememberCoroutineScope()
 
     Scaffold(
-        bottomBar = {
-            if (currentRoute in bottomItems.map { it.route }) {
-                NavigationBar {
-                    bottomItems.forEach { item ->
-                        NavigationBarItem(
-                            selected = currentRoute == item.route,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo("dashboard") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) }
-                        )
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "SubTrack",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                actions = {
+                    IconButton(onClick = { navController.navigate("settings") }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Настройки")
                     }
                 }
-            }
+            )
         },
         floatingActionButton = {
-            if (currentRoute == "list" || currentRoute == "dashboard") {
-                FloatingActionButton(onClick = { navController.navigate("add") }) {
+            if (pagerState.currentPage == 0 || pagerState.currentPage == 1) {
+                FloatingActionButton(
+                    onClick = { navController.navigate("add") },
+                    shape = MaterialTheme.shapes.large
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Добавить подписку")
                 }
             }
         }
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "dashboard",
-            modifier = Modifier.padding(padding)
-        ) {
-            composable("dashboard") {
-                DashboardScreen(viewModel) { navController.navigate("list") }
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            TabRow(
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            scope.launch {
+                                pagerState.animateScrollToPage(
+                                    index,
+                                    animationSpec = tween(350)
+                                )
+                            }
+                        },
+                        text = {
+                            Text(
+                                title,
+                                fontWeight = if (pagerState.currentPage == index)
+                                    FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                }
             }
-            composable("list") {
-                SubscriptionListScreen(
-                    viewModel = viewModel,
-                    onAddClick = { navController.navigate("add") },
-                    onEditClick = { id -> navController.navigate("edit/$id") },
-                    onCancelClick = { id -> navController.navigate("cancel/$id") }
-                )
-            }
-            composable("cancelled") {
-                CancelledScreen(viewModel)
-            }
-            composable("add") {
-                AddEditSubscriptionScreen(viewModel, null) { navController.popBackStack() }
-            }
-            composable("edit/{id}") { entry ->
-                val id = entry.arguments?.getString("id")?.toLongOrNull()
-                AddEditSubscriptionScreen(viewModel, id) { navController.popBackStack() }
-            }
-            composable("cancel/{id}") { entry ->
-                val id = entry.arguments?.getString("id")?.toLongOrNull()
-                CancelScreen(viewModel, id) { navController.popBackStack() }
-            }
-            composable("achievements") {
-                AchievementsScreen(viewModel) { navController.popBackStack() }
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                when (page) {
+                    0 -> DashboardScreen(viewModel) {
+                        scope.launch { pagerState.animateScrollToPage(1) }
+                    }
+                    1 -> SubscriptionListScreen(
+                        viewModel = viewModel,
+                        onEditClick = { id -> navController.navigate("edit/$id") },
+                        onCancelClick = { id -> navController.navigate("cancel/$id") }
+                    )
+                    2 -> CancelledScreen(viewModel)
+                    3 -> SavingsScreen(viewModel)
+                }
             }
         }
     }
-}
 
-data class BottomItem(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+    NavHost(navController = navController, startDestination = "root") {
+        composable("root") { }
+        composable("add") {
+            AddEditSubscriptionScreen(viewModel, null) { navController.popBackStack() }
+        }
+        composable("edit/{id}") { entry ->
+            val id = entry.arguments?.getString("id")?.toLongOrNull()
+            AddEditSubscriptionScreen(viewModel, id) { navController.popBackStack() }
+        }
+        composable("cancel/{id}") { entry ->
+            val id = entry.arguments?.getString("id")?.toLongOrNull()
+            CancelScreen(viewModel, id) { navController.popBackStack() }
+        }
+        composable("settings") {
+            SettingsScreen(viewModel) { navController.popBackStack() }
+        }
+        composable("achievements") {
+            AchievementsScreen(viewModel) { navController.popBackStack() }
+        }
+    }
+}

@@ -10,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.subtrack.app.billing.RuStoreBillingManager
 import com.subtrack.app.ui.MainScreen
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.theme.SubTrackTheme
@@ -19,12 +18,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Инициализация RuStore Pay
-        RuStoreBillingManager.initialize(this)
-        RuStoreBillingManager.checkPurchases()
-
-        // Обработка deeplink при запуске
-        RuStoreBillingManager.handleIntent(intent)
+        // TODO: Раскомментировать после регистрации в RuStore Консоли и получения consoleApplicationId
+        // RuStoreBillingManager.initialize(this)
+        // RuStoreBillingManager.checkPurchases()
+        // RuStoreBillingManager.handleIntent(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -45,7 +42,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Обработка deeplink при возврате из платёжного приложения
-        RuStoreBillingManager.handleIntent(intent)
+        // TODO: Раскомментировать после интеграции RuStore Pay
+        // RuStoreBillingManager.handleIntent(intent)
     }
 }

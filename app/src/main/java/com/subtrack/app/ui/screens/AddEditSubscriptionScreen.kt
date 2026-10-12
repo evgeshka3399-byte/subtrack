@@ -266,7 +266,18 @@ fun AddEditSubscriptionScreen(
                 onClick = {
                     val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                     val trialDaysValue = trialDays.toIntOrNull() ?: 7
-                    val next = calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+                    val next = if (editId != null) {
+    // При редактировании — сохраняем существующую дату следующего списания,
+    // если пользователь не менял firstPaymentDate
+    val existing = viewModel.activeSubscriptions.value.find { it.id == editId }
+    if (existing != null && existing.firstPaymentDate == firstPaymentDate) {
+        existing.nextPaymentDate
+    } else {
+        calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+    }
+} else {
+    calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+}
 
                     val sub = Subscription(
                         id = editId ?: 0,

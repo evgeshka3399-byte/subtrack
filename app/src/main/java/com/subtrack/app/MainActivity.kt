@@ -5,27 +5,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.subtrack.app.ui.MainScreen
+import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.theme.SubTrackTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // TODO: Раскомментировать после регистрации в RuStore Консоли и получения consoleApplicationId
-        // RuStoreBillingManager.initialize(this)
-        // RuStoreBillingManager.checkPurchases()
-        // RuStoreBillingManager.handleIntent(intent)
-
         enableEdgeToEdge()
         setContent {
-            SubTrackTheme {
+            // stateKey — «ключ», который меняется при выборе темы
+            var themeKey by remember { mutableStateOf(0) }
+
+            val context = LocalContext.current
+            val themePref = remember(themeKey) { SettingsPrefs.getTheme(context) }
+
+            val darkTheme = when (themePref) {
+                SettingsPrefs.THEME_LIGHT -> false
+                SettingsPrefs.THEME_DARK -> true
+                else -> isSystemInDarkTheme()
+            }
+
+            SubTrackTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -34,7 +44,10 @@ class MainActivity : ComponentActivity() {
                     val viewModel: SubTrackViewModel = viewModel(
                         factory = SubTrackViewModel.Factory(app.repository)
                     )
-                    MainScreen(viewModel)
+                    MainScreen(
+                        viewModel = viewModel,
+                        onThemeChanged = { themeKey++ }
+                    )
                 }
             }
         }
@@ -42,7 +55,5 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // TODO: Раскомментировать после интеграции RuStore Pay
-        // RuStoreBillingManager.handleIntent(intent)
     }
 }

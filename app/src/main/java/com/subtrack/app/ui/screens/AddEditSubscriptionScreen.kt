@@ -279,12 +279,14 @@ fun AddEditSubscriptionScreen(
                     val trialDaysValue = trialDays.toIntOrNull() ?: 7
 
                     val cal = Calendar.getInstance().apply {
-                        set(Calendar.YEAR, startYear.toIntOrNull() ?: 2026)
-                        set(Calendar.MONTH, ((startMonth.toIntOrNull() ?: 1) - 1).coerceIn(0, 11))
-                        set(Calendar.DAY_OF_MONTH, (startDay.toIntOrNull() ?: 1).coerceIn(1, 31))
-                        set(Calendar.HOUR_OF_DAY, 12)
-                        set(Calendar.MINUTE, 0)
-                    }
+    clear()  // ← СБРАСЫВАЕМ ВСЁ
+    set(Calendar.YEAR, startYear.toIntOrNull() ?: 2026)
+    set(Calendar.MONTH, ((startMonth.toIntOrNull() ?: 1) - 1).coerceIn(0, 11))
+    set(Calendar.DAY_OF_MONTH, (startDay.toIntOrNull() ?: 1).coerceIn(1, 31))
+    set(Calendar.HOUR_OF_DAY, 12)
+    set(Calendar.MINUTE, 0)
+    set(Calendar.SECOND, 0)
+}
                     val firstPayment = cal.timeInMillis
                     val next = calculateNextPaymentDate(firstPayment, cycle, 30)
 

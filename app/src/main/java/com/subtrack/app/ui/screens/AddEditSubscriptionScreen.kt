@@ -3,7 +3,6 @@ package com.subtrack.app.ui.screens
 import android.app.DatePickerDialog
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -271,7 +270,6 @@ fun AddEditSubscriptionScreen(
                         val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                         val trialDaysValue = trialDays.toIntOrNull() ?: 7
 
-                        // Если при редактировании дата не менялась — сохраняем старую nextPaymentDate
                         val next = if (editId != null &&
                             originalFirstPayment == firstPaymentDate &&
                             originalNextPayment != null) {
@@ -303,6 +301,8 @@ fun AddEditSubscriptionScreen(
                 ) {
                     Text("Сохранить")
                 }
+
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

@@ -97,13 +97,14 @@ fun AddEditSubscriptionScreen(
                     }
                 }
             )
-        },
-        modifier = Modifier.imePadding()
+        }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(WindowInsets.ime)
+                .windowInsetsPadding(WindowInsets.ime)
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         focusManager.clearFocus()
@@ -118,7 +119,6 @@ fun AddEditSubscriptionScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // === НАЗВАНИЕ С АВТОДОПОЛНЕНИЕМ ===
                 Column {
                     OutlinedTextField(
                         value = name,
@@ -203,7 +203,6 @@ fun AddEditSubscriptionScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // === ДАТА ЧЕРЕЗ КАЛЕНДАРЬ ===
                 OutlinedTextField(
                     value = dateFormat.format(Date(firstPaymentDate)),
                     onValueChange = {},

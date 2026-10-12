@@ -23,6 +23,8 @@ data class LinePoint(
     val value: Double
 )
 
+enum class ForecastMode { AVERAGE, ACTUAL }
+
 @Composable
 fun LineChart(
     points: List<LinePoint>,
@@ -43,7 +45,6 @@ fun LineChart(
     val maxValue = points.maxOf { it.value }.coerceAtLeast(1.0)
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val textColor = MaterialTheme.colorScheme.onBackground
 
     val animatedProgress by animateFloatAsState(
         targetValue = 1f,
@@ -55,7 +56,6 @@ fun LineChart(
         Row(
             Modifier.weight(1f).fillMaxWidth()
         ) {
-            // Ось Y с подписями
             Column(
                 Modifier
                     .width(48.dp)
@@ -64,75 +64,41 @@ fun LineChart(
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.End
             ) {
-                Text(
-                    "${maxValue.toInt()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor
-                )
-                Text(
-                    "${(maxValue / 2).toInt()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor
-                )
-                Text(
-                    "0",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor
-                )
+                Text("${maxValue.toInt()}", style = MaterialTheme.typography.labelSmall, color = labelColor)
+                Text("${(maxValue / 2).toInt()}", style = MaterialTheme.typography.labelSmall, color = labelColor)
+                Text("0", style = MaterialTheme.typography.labelSmall, color = labelColor)
             }
 
             Spacer(Modifier.width(8.dp))
 
-            // Сам график
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 Canvas(Modifier.fillMaxSize()) {
                     val w = size.width
                     val h = size.height
                     val stepX = if (points.size > 1) w / (points.size - 1) else w
 
-                    // Горизонтальные линии сетки (3 штуки)
                     for (i in 0..2) {
                         val y = h * i / 2f
-                        drawLine(
-                            color = gridColor,
-                            start = Offset(0f, y),
-                            end = Offset(w, y),
-                            strokeWidth = 2f
-                        )
+                        drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 2f)
                     }
 
-                    // Точки графика
                     val offsets = points.mapIndexed { index, point ->
                         val x = stepX * index
                         val y = h - (point.value / maxValue * h * animatedProgress).toFloat()
                         Offset(x, y)
                     }
 
-                    // Линия
                     if (offsets.size > 1) {
                         val path = Path().apply {
                             moveTo(offsets.first().x, offsets.first().y)
                             offsets.drop(1).forEach { lineTo(it.x, it.y) }
                         }
-                        drawPath(
-                            path = path,
-                            color = lineColor,
-                            style = Stroke(width = 6f)
-                        )
+                        drawPath(path, lineColor, style = Stroke(width = 6f))
                     }
 
-                    // Точки на линии
                     offsets.forEach { offset ->
-                        drawCircle(
-                            color = lineColor,
-                            radius = 10f,
-                            center = offset
-                        )
-                        drawCircle(
-                            color = Color.White,
-                            radius = 5f,
-                            center = offset
-                        )
+                        drawCircle(lineColor, radius = 10f, center = offset)
+                        drawCircle(Color.White, radius = 5f, center = offset)
                     }
                 }
             }
@@ -140,7 +106,6 @@ fun LineChart(
 
         Spacer(Modifier.height(8.dp))
 
-        // Ось X с месяцами
         Row(
             Modifier.fillMaxWidth().padding(start = 56.dp),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -167,22 +132,20 @@ fun LineChart(
 }
 
 /**
- * Строит точки прогноза на N месяцев вперёд.
- * Для каждой активной подписки смотрим, в какие месяцы произойдёт списание.
- */
-/**
- * Строит прогноз на N месяцев вперёд.
- * Для каждой подписки находим ВСЕ списания внутри каждого месяца.
+ * Строит прогноз на N месяцев.
+ * @param mode AVERAGE — среднемесячная нагрузка (все годовые траты усреднены).
+ *             ACTUAL  — реальные списания по датам.
  */
 fun buildForecast(
     subscriptions: List<com.subtrack.app.data.Subscription>,
-    months: Int = 12
+    months: Int = 12,
+    mode: ForecastMode = ForecastMode.AVERAGE
 ): List<LinePoint> {
     val monthNames = listOf("Янв", "Фев", "Мар", "Апр", "Май", "Июн",
                             "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек")
     val now = System.currentTimeMillis()
 
-    // Границы месяцев вперёд
+    // Границы месяцев
     val monthBounds = (0 until months).map { i ->
         val cal = java.util.Calendar.getInstance().apply {
             timeInMillis = now
@@ -197,41 +160,48 @@ fun buildForecast(
         val monthIndex = cal.get(java.util.Calendar.MONTH)
         cal.add(java.util.Calendar.MONTH, 1)
         val end = cal.timeInMillis
-        val label = monthNames[monthIndex]
-        Triple(label, start, end)
+        Triple(monthNames[monthIndex], start, end)
     }
 
-    val result = mutableListOf<LinePoint>()
+    val activeSubs = subscriptions.filter { !it.isCancelled }
 
-    for ((label, start, end) in monthBounds) {
-        var total = 0.0
-
-        subscriptions.filter { !it.isCancelled }.forEach { sub ->
-            // Стартуем с firstPaymentDate и прокручиваем цикл вперёд
-            var paymentTime = sub.firstPaymentDate
-            var safety = 0
-            while (paymentTime < end && safety < 500) {
-                if (paymentTime >= start && paymentTime < end) {
-                    total += sub.price
-                }
-                val cal = java.util.Calendar.getInstance().apply {
-                    timeInMillis = paymentTime
-                }
-                when (sub.cycle) {
-                    "MONTHLY" -> cal.add(java.util.Calendar.MONTH, 1)
-                    "QUARTERLY" -> cal.add(java.util.Calendar.MONTH, 3)
-                    "HALF_YEARLY" -> cal.add(java.util.Calendar.MONTH, 6)
-                    "YEARLY" -> cal.add(java.util.Calendar.YEAR, 1)
-                    "CUSTOM" -> cal.add(java.util.Calendar.DAY_OF_YEAR,
-                        sub.customCycleDays.coerceAtLeast(1))
-                    else -> cal.add(java.util.Calendar.MONTH, 1)
-                }
-                paymentTime = cal.timeInMillis
-                safety++
+    return when (mode) {
+        ForecastMode.AVERAGE -> {
+            // Месячная нагрузка каждой подписки
+            val monthlyTotal = activeSubs.sumOf { sub ->
+                com.subtrack.app.util.monthlyEquivalent(sub.price, sub.cycle, sub.customCycleDays)
             }
+            monthBounds.map { (label, _, _) -> LinePoint(label, monthlyTotal) }
         }
 
-        result.add(LinePoint(label, total))
+        ForecastMode.ACTUAL -> {
+            monthBounds.map { (label, start, end) ->
+                var total = 0.0
+                activeSubs.forEach { sub ->
+                    var paymentTime = sub.firstPaymentDate
+                    var safety = 0
+                    while (paymentTime < end && safety < 500) {
+                        if (paymentTime >= start && paymentTime < end) {
+                            total += sub.price
+                        }
+                        val cal = java.util.Calendar.getInstance().apply {
+                            timeInMillis = paymentTime
+                        }
+                        when (sub.cycle) {
+                            "MONTHLY" -> cal.add(java.util.Calendar.MONTH, 1)
+                            "QUARTERLY" -> cal.add(java.util.Calendar.MONTH, 3)
+                            "HALF_YEARLY" -> cal.add(java.util.Calendar.MONTH, 6)
+                            "YEARLY" -> cal.add(java.util.Calendar.YEAR, 1)
+                            "CUSTOM" -> cal.add(java.util.Calendar.DAY_OF_YEAR,
+                                sub.customCycleDays.coerceAtLeast(1))
+                            else -> cal.add(java.util.Calendar.MONTH, 1)
+                        }
+                        paymentTime = cal.timeInMillis
+                        safety++
+                    }
+                }
+                LinePoint(label, total)
+            }
+        }
     }
-    return result
 }

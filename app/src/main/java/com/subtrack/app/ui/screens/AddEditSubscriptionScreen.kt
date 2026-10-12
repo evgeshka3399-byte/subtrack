@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.ui.SubTrackViewModel
+import com.subtrack.app.util.CategoryDetector
 import com.subtrack.app.util.calculateNextPaymentDate
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -34,7 +35,7 @@ fun AddEditSubscriptionScreen(
 
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Развлечения") }
+    var category by remember { mutableStateOf("Другое") }
     var cycle by remember { mutableStateOf("MONTHLY") }
     var startDay by remember { mutableStateOf("1") }
     var startMonth by remember { mutableStateOf("1") }
@@ -43,6 +44,30 @@ fun AddEditSubscriptionScreen(
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
+    var categoryManuallyChanged by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
+    var categoryOptions by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    // Автоподбор категории при вводе названия
+    LaunchedEffect(name) {
+        if (!categoryManuallyChanged && editId == null) {
+            val detected = CategoryDetector.detect(name)
+            when {
+                detected.isEmpty() -> {
+                    if (name.isBlank()) category = "Другое"
+                }
+                detected.size == 1 -> {
+                    category = detected.first()
+                }
+                else -> {
+                    // Несколько вариантов — предлагаем выбрать
+                    categoryOptions = detected
+                    showCategoryPicker = true
+                    category = detected.first()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(editId) {
         if (editId != null && !loaded) {
@@ -57,6 +82,7 @@ fun AddEditSubscriptionScreen(
                 startDay = cal.get(Calendar.DAY_OF_MONTH).toString()
                 startMonth = (cal.get(Calendar.MONTH) + 1).toString()
                 startYear = cal.get(Calendar.YEAR).toString()
+                categoryManuallyChanged = true
             }
             loaded = true
         }
@@ -87,21 +113,23 @@ fun AddEditSubscriptionScreen(
         ) {
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = {
+                    name = it
+                    categoryManuallyChanged = false
+                },
                 label = { Text("Название") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                    label = { Text("Цена, ₽") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+
+            OutlinedTextField(
+                value = price,
+                onValueChange = { price = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                label = { Text("Цена, ₽") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Text("Дата первого списания", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -151,7 +179,10 @@ fun AddEditSubscriptionScreen(
                 "Софт и сервисы" to "Софт и сервисы",
                 "Здоровье и спорт" to "Здоровье и спорт",
                 "Другое" to "Другое"
-            )) { category = it }
+            )) {
+                category = it
+                categoryManuallyChanged = true
+            }
 
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Checkbox(checked = hasTrial, onCheckedChange = { hasTrial = it })
@@ -218,6 +249,37 @@ fun AddEditSubscriptionScreen(
                 Text("Сохранить")
             }
         }
+    }
+
+    // Диалог выбора категории, если автоподбор нашёл несколько вариантов
+    if (showCategoryPicker && categoryOptions.isNotEmpty()) {
+        AlertDialog(
+            onDismissRequest = { showCategoryPicker = false },
+            title = { Text("Выбери категорию") },
+            text = {
+                Column {
+                    Text("Мы нашли несколько подходящих категорий:")
+                    Spacer(Modifier.height(12.dp))
+                    categoryOptions.forEach { option ->
+                        TextButton(
+                            onClick = {
+                                category = option
+                                categoryManuallyChanged = true
+                                showCategoryPicker = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(option)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCategoryPicker = false }) {
+                    Text("Оставить «${categoryOptions.first()}»")
+                }
+            }
+        )
     }
 }
 

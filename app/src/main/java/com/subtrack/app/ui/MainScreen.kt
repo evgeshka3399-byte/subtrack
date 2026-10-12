@@ -130,10 +130,17 @@ fun MainScreen(viewModel: SubTrackViewModel) {
             CancelScreen(viewModel, id) { navController.popBackStack() }
         }
         composable("settings") {
-            SettingsScreen(viewModel) { navController.popBackStack() }
+    SettingsScreen(
+        viewModel = viewModel,
+        onBack = { navController.popBackStack() },
+        onOpenPremium = { navController.navigate("premium") }
+                  )
         }
         composable("achievements") {
             AchievementsScreen(viewModel) { navController.popBackStack() }
+        }
+        composable("premium") {
+        PremiumScreen { navController.popBackStack() }
         }
     }
 }

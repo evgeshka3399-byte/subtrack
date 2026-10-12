@@ -55,7 +55,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
 
     val forecast = remember(subscriptions, forecastMode) {
         if (subscriptions.isEmpty()) emptyList()
-        else buildForecast(subscriptions, 12, forecastMode)
+        else buildForecast(subscriptions, 24, forecastMode)
     }
 
     Column(

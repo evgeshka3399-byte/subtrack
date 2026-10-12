@@ -1,5 +1,5 @@
 package com.subtrack.app.ui.screens
-import androidx.compose.foundation.layout.navigationBarsPadding
+
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -52,100 +52,111 @@ fun OnboardingScreen(onFinish: () -> Unit) {
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) { page ->
-            val pageData = pages[page]
-            val scale by animateFloatAsState(
-                targetValue = if (pagerState.currentPage == page) 1f else 0.85f,
-                label = "scale"
-            )
-            Column(
-                Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    Modifier
-                        .size(140.dp)
-                        .scale(scale)
-                        .background(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+    Scaffold { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { page ->
+                val pageData = pages[page]
+                val scale by animateFloatAsState(
+                    targetValue = if (pagerState.currentPage == page) 1f else 0.85f,
+                    label = "scale"
+                )
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        pageData.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(64.dp)
+                    Box(
+                        Modifier
+                            .size(140.dp)
+                            .scale(scale)
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            pageData.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(64.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(32.dp))
+                    Text(
+                        pageData.title,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        pageData.description,
+                        fontSize = 16.sp,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(Modifier.height(32.dp))
-                Text(
-                    pageData.title,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    pageData.description,
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-        }
 
-        Row(
-            Modifier.padding(vertical = 24.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            repeat(pages.size) { i ->
-                val isActive = i == pagerState.currentPage
-                val width = if (isActive) 24.dp else 10.dp
-                Box(
-                    Modifier
-                        .padding(4.dp)
-                        .size(width = width, height = 10.dp)
-                        .background(
-                            if (isActive) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.surfaceVariant,
-                            CircleShape
-                        )
-                )
+            Row(
+                Modifier.padding(vertical = 24.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(pages.size) { i ->
+                    val isActive = i == pagerState.currentPage
+                    val width = if (isActive) 24.dp else 10.dp
+                    Box(
+                        Modifier
+                            .padding(4.dp)
+                            .size(width = width, height = 10.dp)
+                            .background(
+                                if (isActive) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape
+                            )
+                    )
+                }
             }
-        }
 
-        Button(
-    onClick = {
-        if (pagerState.currentPage == pages.size - 1) onFinish()
-        else scope.launch {
-            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+            // === КНОПКА С ОТСТУПОМ ОТ СИСТЕМНОЙ ПАНЕЛИ ===
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
+                Button(
+                    onClick = {
+                        if (pagerState.currentPage == pages.size - 1) onFinish()
+                        else scope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Text(
+                        if (pagerState.currentPage == pages.size - 1) "Начать" else "Далее",
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
         }
-    },
-    modifier = Modifier
-        .fillMaxWidth()
-        .height(56.dp)
-        .navigationBarsPadding(),
-    shape = MaterialTheme.shapes.large
-) {
-    Text(
-        if (pagerState.currentPage == pages.size - 1) "Начать" else "Далее",
-        fontSize = 16.sp
-    )
-}
     }
 }

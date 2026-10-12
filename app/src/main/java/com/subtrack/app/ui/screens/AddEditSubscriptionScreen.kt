@@ -1,5 +1,6 @@
 package com.subtrack.app.ui.screens
 
+import android.app.DatePickerDialog
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,12 +9,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -22,7 +25,10 @@ import com.subtrack.app.data.SubscriptionCatalog
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.util.calculateNextPaymentDate
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -33,14 +39,14 @@ fun AddEditSubscriptionScreen(
 ) {
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
+    val dateFormat = remember { SimpleDateFormat("dd.MM.yyyy", Locale("ru")) }
 
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Другое") }
     var cycle by remember { mutableStateOf("MONTHLY") }
-    var startDay by remember { mutableStateOf("1") }
-    var startMonth by remember { mutableStateOf("1") }
-    var startYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR).toString()) }
+    var firstPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var hasTrial by remember { mutableStateOf(false) }
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
@@ -48,6 +54,7 @@ fun AddEditSubscriptionScreen(
     var categoryManuallyChanged by remember { mutableStateOf(false) }
     var showSuggestions by remember { mutableStateOf(false) }
     var suggestions by remember { mutableStateOf<List<SubscriptionCatalog.CatalogItem>>(emptyList()) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     // Автодополнение названия
     LaunchedEffect(name) {
@@ -67,12 +74,9 @@ fun AddEditSubscriptionScreen(
                 price = sub.price.toString()
                 category = sub.category
                 cycle = sub.cycle
+                firstPaymentDate = sub.firstPaymentDate
                 hasTrial = sub.hasTrial
                 trialPrice = sub.priceAfterTrial?.toString() ?: ""
-                val cal = Calendar.getInstance().apply { timeInMillis = sub.firstPaymentDate }
-                startDay = cal.get(Calendar.DAY_OF_MONTH).toString()
-                startMonth = (cal.get(Calendar.MONTH) + 1).toString()
-                startYear = cal.get(Calendar.YEAR).toString()
                 categoryManuallyChanged = true
             }
             loaded = true
@@ -152,10 +156,7 @@ fun AddEditSubscriptionScreen(
                                             })
                                         }
                                     ) {
-                                        Text(
-                                            item.name,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
+                                        Text(item.name, style = MaterialTheme.typography.bodyLarge)
                                         Text(
                                             item.category,
                                             style = MaterialTheme.typography.bodySmall,
@@ -164,9 +165,7 @@ fun AddEditSubscriptionScreen(
                                     }
                                 }
                                 if (item != suggestions.last()) {
-                                    Divider(
-                                        color = MaterialTheme.colorScheme.outlineVariant
-                                    )
+                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
@@ -199,33 +198,23 @@ fun AddEditSubscriptionScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Text("Дата первого списания", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = startDay,
-                    onValueChange = { startDay = it.filter { c -> c.isDigit() }.take(2) },
-                    label = { Text("День") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = startMonth,
-                    onValueChange = { startMonth = it.filter { c -> c.isDigit() }.take(2) },
-                    label = { Text("Месяц") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = startYear,
-                    onValueChange = { startYear = it.filter { c -> c.isDigit() }.take(4) },
-                    label = { Text("Год") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // === ДАТА ПЕРВОГО СПИСАНИЯ (КНОПКА) ===
+            OutlinedTextField(
+                value = dateFormat.format(Date(firstPaymentDate)),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Дата первого списания") },
+                trailingIcon = {
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = "Выбрать дату")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pointerInput(Unit) {
+                        detectTapGestures(onTap = { showDatePicker = true })
+                    }
+            )
 
             DropdownField("Цикл", cycle, listOf(
                 "MONTHLY" to "Месяц",
@@ -277,18 +266,7 @@ fun AddEditSubscriptionScreen(
                 onClick = {
                     val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                     val trialDaysValue = trialDays.toIntOrNull() ?: 7
-
-                    val cal = Calendar.getInstance().apply {
-    clear()  // ← СБРАСЫВАЕМ ВСЁ
-    set(Calendar.YEAR, startYear.toIntOrNull() ?: 2026)
-    set(Calendar.MONTH, ((startMonth.toIntOrNull() ?: 1) - 1).coerceIn(0, 11))
-    set(Calendar.DAY_OF_MONTH, (startDay.toIntOrNull() ?: 1).coerceIn(1, 31))
-    set(Calendar.HOUR_OF_DAY, 12)
-    set(Calendar.MINUTE, 0)
-    set(Calendar.SECOND, 0)
-}
-                    val firstPayment = cal.timeInMillis
-                    val next = calculateNextPaymentDate(firstPayment, cycle, 30)
+                    val next = calculateNextPaymentDate(firstPaymentDate, cycle, 30)
 
                     val sub = Subscription(
                         id = editId ?: 0,
@@ -297,10 +275,10 @@ fun AddEditSubscriptionScreen(
                         category = category,
                         cycle = cycle,
                         customCycleDays = 30,
-                        firstPaymentDate = firstPayment,
+                        firstPaymentDate = firstPaymentDate,
                         nextPaymentDate = next,
                         hasTrial = hasTrial,
-                        trialEndDate = if (hasTrial) firstPayment + trialDaysValue * 24L * 60 * 60 * 1000 else null,
+                        trialEndDate = if (hasTrial) firstPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000 else null,
                         priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
                     )
                     scope.launch {
@@ -314,6 +292,30 @@ fun AddEditSubscriptionScreen(
                 Text("Сохранить")
             }
         }
+    }
+
+    // === КАЛЕНДАРЬ ===
+    if (showDatePicker) {
+        val calendar = Calendar.getInstance().apply { timeInMillis = firstPaymentDate }
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val cal = Calendar.getInstance().apply {
+                    clear()
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                    set(Calendar.HOUR_OF_DAY, 12)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                }
+                firstPaymentDate = cal.timeInMillis
+                showDatePicker = false
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 }
 

@@ -97,7 +97,8 @@ fun AddEditSubscriptionScreen(
                     }
                 }
             )
-        }
+        },
+        contentWindowInsets = WindowInsets.safeDrawing
     ) { padding ->
         Box(
             modifier = Modifier

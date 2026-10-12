@@ -106,20 +106,23 @@ fun LineChart(
 
         Spacer(Modifier.height(8.dp))
 
-        Row(
-            Modifier.fillMaxWidth().padding(start = 56.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            points.forEachIndexed { index, point ->
-                if (index % 3 == 0 || index == points.size - 1) {
-                    Text(
-                        point.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = labelColor,
-                        fontSize = 9.sp
-                    )
-                }
-            }
+       Row(
+    Modifier.fillMaxWidth().padding(start = 56.dp),
+    horizontalArrangement = Arrangement.SpaceBetween
+) {
+    points.forEachIndexed { index, point ->
+        // Показываем каждый 3-й месяц, чтобы подписи не слипались
+        if (index % 3 == 0 || index == points.size - 1) {
+            Text(
+                point.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = labelColor,
+                fontSize = 9.sp
+            )
+        }
+    }
+}
+}
         }
 
         Spacer(Modifier.height(4.dp))

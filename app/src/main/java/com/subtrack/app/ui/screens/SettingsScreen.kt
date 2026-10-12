@@ -2,6 +2,7 @@ package com.subtrack.app.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -9,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Share
@@ -59,17 +61,14 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // === PREMIUM ===
             SettingsItem(
                 icon = Icons.Default.Star,
                 title = "SubTrack Premium",
                 subtitle = "Без рекламы, безлимит отмен",
                 onClick = onOpenPremium
             )
-
             Divider()
 
-            // === ТЕМА ===
             SettingsItem(
                 icon = Icons.Default.DarkMode,
                 title = "Тема",
@@ -81,7 +80,6 @@ fun SettingsScreen(
                 onClick = { showThemeDialog = true }
             )
 
-            // === НАПОМИНАНИЯ ===
             SettingsItem(
                 icon = Icons.Default.Notifications,
                 title = "Напоминания",
@@ -89,7 +87,6 @@ fun SettingsScreen(
                 onClick = { showReminderDialog = true }
             )
 
-            // === ЭКСПОРТ ===
             SettingsItem(
                 icon = Icons.Default.Share,
                 title = "Экспорт данных",
@@ -100,7 +97,13 @@ fun SettingsScreen(
                 }
             )
 
-            // === О ПРИЛОЖЕНИИ ===
+            SettingsItem(
+                icon = Icons.Default.Email,
+                title = "Предложения / баги",
+                subtitle = "evgeshka3399@vk.com",
+                onClick = { sendFeedback(context) }
+            )
+
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "О приложении",
@@ -110,7 +113,6 @@ fun SettingsScreen(
         }
     }
 
-    // Диалог выбора темы
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
@@ -140,7 +142,6 @@ fun SettingsScreen(
         )
     }
 
-    // Диалог напоминаний
     if (showReminderDialog) {
         AlertDialog(
             onDismissRequest = { showReminderDialog = false },
@@ -178,7 +179,6 @@ fun SettingsScreen(
         )
     }
 
-    // Диалог о приложении
     if (showAboutDialog) {
         AlertDialog(
             onDismissRequest = { showAboutDialog = false },
@@ -216,11 +216,7 @@ fun SettingsItem(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
-        )
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
@@ -259,4 +255,27 @@ private fun shareCsv(context: Context, csv: String) {
         putExtra(Intent.EXTRA_TEXT, csv)
     }
     context.startActivity(Intent.createChooser(intent, "Сохранить CSV"))
+}
+
+private fun sendFeedback(context: Context) {
+    val email = "evgeshka3399@vk.com"
+    val subject = "Предложения/баги SubTrack"
+    val body = """
+
+        ---
+        Мы будем стараться и меняться вместе с вами.
+        Опишите проблему или предложение выше этой строки.
+    """.trimIndent()
+
+    val intent = Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse("mailto:$email")
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_TEXT, body)
+    }
+    try {
+        context.startActivity(Intent.createChooser(intent, "Отправить письмо"))
+    } catch (e: Exception) {
+        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("mailto:$email"))
+        context.startActivity(webIntent)
+    }
 }

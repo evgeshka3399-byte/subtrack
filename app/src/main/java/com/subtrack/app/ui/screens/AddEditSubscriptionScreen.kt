@@ -103,8 +103,7 @@ fun AddEditSubscriptionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .consumeWindowInsets(WindowInsets.ime)
-                .windowInsetsPadding(WindowInsets.ime)
+                .imePadding()
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         focusManager.clearFocus()
@@ -319,6 +318,7 @@ fun AddEditSubscriptionScreen(
                     set(Calendar.HOUR_OF_DAY, 12)
                     set(Calendar.MINUTE, 0)
                     set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
                 }
                 firstPaymentDate = cal.timeInMillis
                 showDatePicker = false

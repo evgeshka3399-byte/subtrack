@@ -1,7 +1,9 @@
 package com.subtrack.app.ui.screens
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -47,6 +49,8 @@ fun AddEditSubscriptionScreen(
     var category by remember { mutableStateOf("Другое") }
     var cycle by remember { mutableStateOf("MONTHLY") }
     var firstPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    var originalFirstPayment by remember { mutableStateOf(System.currentTimeMillis()) }
+    var originalNextPayment by remember { mutableStateOf<Long?>(null) }
     var hasTrial by remember { mutableStateOf(false) }
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
@@ -56,7 +60,6 @@ fun AddEditSubscriptionScreen(
     var suggestions by remember { mutableStateOf<List<SubscriptionCatalog.CatalogItem>>(emptyList()) }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // Автодополнение названия
     LaunchedEffect(name) {
         if (name.isNotBlank() && !categoryManuallyChanged) {
             suggestions = SubscriptionCatalog.search(name)
@@ -75,6 +78,8 @@ fun AddEditSubscriptionScreen(
                 category = sub.category
                 cycle = sub.cycle
                 firstPaymentDate = sub.firstPaymentDate
+                originalFirstPayment = sub.firstPaymentDate
+                originalNextPayment = sub.nextPaymentDate
                 hasTrial = sub.hasTrial
                 trialPrice = sub.priceAfterTrial?.toString() ?: ""
                 categoryManuallyChanged = true
@@ -93,9 +98,10 @@ fun AddEditSubscriptionScreen(
                     }
                 }
             )
-        }
+        },
+        modifier = Modifier.imePadding()
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -105,207 +111,202 @@ fun AddEditSubscriptionScreen(
                         showSuggestions = false
                     })
                 }
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // === НАЗВАНИЕ С АВТОДОПОЛНЕНИЕМ ===
-            Column {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        categoryManuallyChanged = false
-                    },
-                    label = { Text("Название") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // === НАЗВАНИЕ С АВТОДОПОЛНЕНИЕМ ===
+                Column {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            categoryManuallyChanged = false
+                        },
+                        label = { Text("Название") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                if (showSuggestions && suggestions.isNotEmpty()) {
-                    Card(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column {
-                            suggestions.forEach { item ->
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Default.Search,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(Modifier.width(12.dp))
-                                    Column(
-                                        Modifier.weight(1f).pointerInput(item.name) {
-                                            detectTapGestures(onTap = {
+                    if (showSuggestions && suggestions.isNotEmpty()) {
+                        Card(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            shape = MaterialTheme.shapes.medium,
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Column {
+                                suggestions.forEach { item ->
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
                                                 name = item.name
                                                 category = item.category
                                                 categoryManuallyChanged = true
                                                 showSuggestions = false
                                                 focusManager.clearFocus()
-                                            })
-                                        }
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                                     ) {
-                                        Text(item.name, style = MaterialTheme.typography.bodyLarge)
-                                        Text(
-                                            item.category,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        Icon(
+                                            Icons.Default.Search,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(item.name, style = MaterialTheme.typography.bodyLarge)
+                                            Text(
+                                                item.category,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
-                                }
-                                if (item != suggestions.last()) {
-                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    if (item != suggestions.last()) {
+                                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Подсказка про категорию
-            if (category != "Другое") {
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                if (category != "Другое") {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Категория определена: $category",
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                    label = { Text("Цена, ₽") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // === ДАТА ЧЕРЕЗ КАЛЕНДАРЬ ===
+                OutlinedTextField(
+                    value = dateFormat.format(Date(firstPaymentDate)),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Дата первого списания") },
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.CalendarMonth, contentDescription = "Выбрать дату")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showDatePicker = true }
+                )
+
+                DropdownField("Цикл", cycle, listOf(
+                    "MONTHLY" to "Месяц",
+                    "QUARTERLY" to "3 месяца",
+                    "HALF_YEARLY" to "6 месяцев",
+                    "YEARLY" to "Год"
+                )) { cycle = it }
+
+                DropdownField("Категория", category, listOf(
+                    "Мультиподписки" to "Мультиподписки",
+                    "Кино и ТВ" to "Кино и ТВ",
+                    "Музыка" to "Музыка",
+                    "Книги и обучение" to "Книги и обучение",
+                    "Софт и сервисы" to "Софт и сервисы",
+                    "Здоровье и спорт" to "Здоровье и спорт",
+                    "Другое" to "Другое"
+                )) {
+                    category = it
+                    categoryManuallyChanged = true
+                }
+
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Checkbox(checked = hasTrial, onCheckedChange = { hasTrial = it })
+                    Text("Пробный период")
+                }
+                if (hasTrial) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = trialDays,
+                            onValueChange = { trialDays = it.filter { c -> c.isDigit() } },
+                            label = { Text("Дней") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = trialPrice,
+                            onValueChange = { trialPrice = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
+                            label = { Text("Цена после") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
+                        val trialDaysValue = trialDays.toIntOrNull() ?: 7
+
+                        // Если при редактировании дата не менялась — сохраняем старую nextPaymentDate
+                        val next = if (editId != null &&
+                            originalFirstPayment == firstPaymentDate &&
+                            originalNextPayment != null) {
+                            originalNextPayment!!
+                        } else {
+                            calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+                        }
+
+                        val sub = Subscription(
+                            id = editId ?: 0,
+                            name = name.ifBlank { "Без названия" },
+                            price = priceValue,
+                            category = category,
+                            cycle = cycle,
+                            customCycleDays = 30,
+                            firstPaymentDate = firstPaymentDate,
+                            nextPaymentDate = next,
+                            hasTrial = hasTrial,
+                            trialEndDate = if (hasTrial) firstPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000 else null,
+                            priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
+                        )
+                        scope.launch {
+                            if (editId == null) viewModel.addSubscription(sub)
+                            else viewModel.updateSubscription(sub)
+                            onDone()
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        "Категория определена: $category",
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    Text("Сохранить")
                 }
-            }
-
-            OutlinedTextField(
-                value = price,
-                onValueChange = { price = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                label = { Text("Цена, ₽") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // === ДАТА ПЕРВОГО СПИСАНИЯ (КНОПКА) ===
-            OutlinedTextField(
-                value = dateFormat.format(Date(firstPaymentDate)),
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Дата первого списания") },
-                trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "Выбрать дату")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .pointerInput(Unit) {
-                        detectTapGestures(onTap = { showDatePicker = true })
-                    }
-            )
-
-            DropdownField("Цикл", cycle, listOf(
-                "MONTHLY" to "Месяц",
-                "QUARTERLY" to "3 месяца",
-                "HALF_YEARLY" to "6 месяцев",
-                "YEARLY" to "Год"
-            )) { cycle = it }
-
-            DropdownField("Категория", category, listOf(
-                "Мультиподписки" to "Мультиподписки",
-                "Кино и ТВ" to "Кино и ТВ",
-                "Музыка" to "Музыка",
-                "Книги и обучение" to "Книги и обучение",
-                "Софт и сервисы" to "Софт и сервисы",
-                "Здоровье и спорт" to "Здоровье и спорт",
-                "Другое" to "Другое"
-            )) {
-                category = it
-                categoryManuallyChanged = true
-            }
-
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Checkbox(checked = hasTrial, onCheckedChange = { hasTrial = it })
-                Text("Пробный период")
-            }
-            if (hasTrial) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = trialDays,
-                        onValueChange = { trialDays = it.filter { c -> c.isDigit() } },
-                        label = { Text("Дней") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = trialPrice,
-                        onValueChange = { trialPrice = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                        label = { Text("Цена после") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(4.dp))
-            Button(
-                onClick = {
-                    val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
-                    val trialDaysValue = trialDays.toIntOrNull() ?: 7
-                    val next = if (editId != null) {
-    // При редактировании — сохраняем существующую дату следующего списания,
-    // если пользователь не менял firstPaymentDate
-    val existing = viewModel.activeSubscriptions.value.find { it.id == editId }
-    if (existing != null && existing.firstPaymentDate == firstPaymentDate) {
-        existing.nextPaymentDate
-    } else {
-        calculateNextPaymentDate(firstPaymentDate, cycle, 30)
-    }
-} else {
-    calculateNextPaymentDate(firstPaymentDate, cycle, 30)
-}
-
-                    val sub = Subscription(
-                        id = editId ?: 0,
-                        name = name.ifBlank { "Без названия" },
-                        price = priceValue,
-                        category = category,
-                        cycle = cycle,
-                        customCycleDays = 30,
-                        firstPaymentDate = firstPaymentDate,
-                        nextPaymentDate = next,
-                        hasTrial = hasTrial,
-                        trialEndDate = if (hasTrial) firstPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000 else null,
-                        priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
-                    )
-                    scope.launch {
-                        if (editId == null) viewModel.addSubscription(sub)
-                        else viewModel.updateSubscription(sub)
-                        onDone()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Сохранить")
             }
         }
     }
 
-    // === КАЛЕНДАРЬ ===
     if (showDatePicker) {
         val calendar = Calendar.getInstance().apply { timeInMillis = firstPaymentDate }
         DatePickerDialog(

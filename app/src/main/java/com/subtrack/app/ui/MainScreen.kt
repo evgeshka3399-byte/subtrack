@@ -1,5 +1,6 @@
 package com.subtrack.app.ui
-
+import com.subtrack.app.ui.screens.SettingsScreen
+import com.subtrack.app.ui.screens.PremiumScreen
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager

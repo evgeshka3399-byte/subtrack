@@ -5,9 +5,10 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 /**
- * Вычисляет дату следующего списания.
- * Начинает с firstPaymentDate и прибавляет цикл, пока дата <= сегодня.
+ * Вычисляет дату следующего списания от firstPaymentDate.
+ *
  * Если firstPaymentDate в будущем — возвращает её как есть.
+ * Если в прошлом — прибавляет цикл, пока дата не станет > сегодня.
  */
 fun calculateNextPaymentDate(
     firstPaymentDate: Long,
@@ -16,14 +17,20 @@ fun calculateNextPaymentDate(
 ): Long {
     val now = System.currentTimeMillis()
 
-    // Если дата в будущем — это и есть следующее списание
-    if (firstPaymentDate > now) return firstPaymentDate
+    // Если дата в будущем или сегодня — оставляем как есть
+    if (firstPaymentDate >= now - 24L * 60 * 60 * 1000) return firstPaymentDate
 
-    val calendar = Calendar.getInstance().apply { timeInMillis = firstPaymentDate }
+    val calendar = Calendar.getInstance().apply {
+        timeInMillis = firstPaymentDate
+        set(Calendar.HOUR_OF_DAY, 12)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
     var safety = 0
 
-    // Прибавляем цикл, пока не окажемся в будущем
     while (calendar.timeInMillis <= now && safety < 1000) {
+        val beforeDay = calendar.get(Calendar.DAY_OF_MONTH)
         when (cycle) {
             "MONTHLY" -> calendar.add(Calendar.MONTH, 1)
             "QUARTERLY" -> calendar.add(Calendar.MONTH, 3)
@@ -31,6 +38,13 @@ fun calculateNextPaymentDate(
             "YEARLY" -> calendar.add(Calendar.YEAR, 1)
             "CUSTOM" -> calendar.add(Calendar.DAY_OF_YEAR, customDays.coerceAtLeast(1))
             else -> calendar.add(Calendar.MONTH, 1)
+        }
+        // Защита от сдвига дня (например, 31 января → 28 февраля)
+        val afterDay = calendar.get(Calendar.DAY_OF_MONTH)
+        if (afterDay < beforeDay && cycle in listOf("MONTHLY", "QUARTERLY", "HALF_YEARLY")) {
+            calendar.set(Calendar.DAY_OF_MONTH, beforeDay.coerceAtMost(
+                calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+            ))
         }
         safety++
     }

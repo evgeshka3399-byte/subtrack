@@ -1,5 +1,5 @@
 package com.subtrack.app.ui.screens
-
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -130,21 +130,22 @@ fun OnboardingScreen(onFinish: () -> Unit) {
         }
 
         Button(
-            onClick = {
-                if (pagerState.currentPage == pages.size - 1) onFinish()
-                else scope.launch {
-                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Text(
-                if (pagerState.currentPage == pages.size - 1) "Начать" else "Далее",
-                fontSize = 16.sp
-            )
+    onClick = {
+        if (pagerState.currentPage == pages.size - 1) onFinish()
+        else scope.launch {
+            pagerState.animateScrollToPage(pagerState.currentPage + 1)
         }
+    },
+    modifier = Modifier
+        .fillMaxWidth()
+        .height(56.dp)
+        .navigationBarsPadding(),
+    shape = MaterialTheme.shapes.large
+) {
+    Text(
+        if (pagerState.currentPage == pages.size - 1) "Начать" else "Далее",
+        fontSize = 16.sp
+    )
+}
     }
 }

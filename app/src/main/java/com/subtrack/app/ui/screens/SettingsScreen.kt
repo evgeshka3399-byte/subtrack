@@ -31,7 +31,8 @@ import com.subtrack.app.util.exportToCsv
 fun SettingsScreen(
     viewModel: SubTrackViewModel,
     onBack: () -> Unit,
-    onOpenPremium: () -> Unit = {}
+    onOpenPremium: () -> Unit = {},
+    onThemeChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var theme by remember { mutableStateOf(SettingsPrefs.getTheme(context)) }
@@ -122,16 +123,19 @@ fun SettingsScreen(
                     ThemeOption("Системная", SettingsPrefs.THEME_SYSTEM, theme) {
                         theme = it
                         SettingsPrefs.setTheme(context, it)
+                        onThemeChanged()
                         showThemeDialog = false
                     }
                     ThemeOption("Светлая", SettingsPrefs.THEME_LIGHT, theme) {
                         theme = it
                         SettingsPrefs.setTheme(context, it)
+                        onThemeChanged()
                         showThemeDialog = false
                     }
                     ThemeOption("Тёмная", SettingsPrefs.THEME_DARK, theme) {
                         theme = it
                         SettingsPrefs.setTheme(context, it)
+                        onThemeChanged()
                         showThemeDialog = false
                     }
                 }

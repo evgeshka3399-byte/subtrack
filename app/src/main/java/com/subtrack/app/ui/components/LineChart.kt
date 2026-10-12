@@ -170,60 +170,68 @@ fun LineChart(
  * Строит точки прогноза на N месяцев вперёд.
  * Для каждой активной подписки смотрим, в какие месяцы произойдёт списание.
  */
+/**
+ * Строит прогноз на N месяцев вперёд.
+ * Для каждой подписки находим ВСЕ списания внутри каждого месяца.
+ */
 fun buildForecast(
     subscriptions: List<com.subtrack.app.data.Subscription>,
     months: Int = 12
 ): List<LinePoint> {
-    val calendar = java.util.Calendar.getInstance()
     val monthNames = listOf("Янв", "Фев", "Мар", "Апр", "Май", "Июн",
                             "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек")
-
-    val result = mutableListOf<LinePoint>()
     val now = System.currentTimeMillis()
 
-    for (i in 0 until months) {
-        val monthCal = java.util.Calendar.getInstance().apply {
+    // Границы месяцев вперёд
+    val monthBounds = (0 until months).map { i ->
+        val cal = java.util.Calendar.getInstance().apply {
             timeInMillis = now
             add(java.util.Calendar.MONTH, i)
+            set(java.util.Calendar.DAY_OF_MONTH, 1)
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
         }
-        val monthLabel = monthNames[monthCal.get(java.util.Calendar.MONTH)]
+        val start = cal.timeInMillis
+        val monthIndex = cal.get(java.util.Calendar.MONTH)
+        cal.add(java.util.Calendar.MONTH, 1)
+        val end = cal.timeInMillis
+        val label = monthNames[monthIndex]
+        Triple(label, start, end)
+    }
 
+    val result = mutableListOf<LinePoint>()
+
+    for ((label, start, end) in monthBounds) {
         var total = 0.0
-        subscriptions.forEach { sub ->
-            if (!sub.isCancelled) {
-                var paymentTime = sub.nextPaymentDate
-                // Считаем все списания внутри целевого месяца
-                val monthStart = monthCal.clone() as java.util.Calendar
-                monthStart.set(java.util.Calendar.DAY_OF_MONTH, 1)
-                monthStart.set(java.util.Calendar.HOUR_OF_DAY, 0)
-                val monthEnd = monthStart.clone() as java.util.Calendar
-                monthEnd.add(java.util.Calendar.MONTH, 1)
 
-                // Симулируем списания
-                var safety = 0
-                while (paymentTime < monthEnd.timeInMillis && safety < 100) {
-                    if (paymentTime >= monthStart.timeInMillis) {
-                        total += sub.price
-                    }
-                    val c = java.util.Calendar.getInstance().apply {
-                        timeInMillis = paymentTime
-                    }
-                    when (sub.cycle) {
-                        "MONTHLY" -> c.add(java.util.Calendar.MONTH, 1)
-                        "QUARTERLY" -> c.add(java.util.Calendar.MONTH, 3)
-                        "HALF_YEARLY" -> c.add(java.util.Calendar.MONTH, 6)
-                        "YEARLY" -> c.add(java.util.Calendar.YEAR, 1)
-                        "CUSTOM" -> c.add(java.util.Calendar.DAY_OF_YEAR,
-                            sub.customCycleDays.coerceAtLeast(1))
-                        else -> c.add(java.util.Calendar.MONTH, 1)
-                    }
-                    paymentTime = c.timeInMillis
-                    safety++
+        subscriptions.filter { !it.isCancelled }.forEach { sub ->
+            // Стартуем с firstPaymentDate и прокручиваем цикл вперёд
+            var paymentTime = sub.firstPaymentDate
+            var safety = 0
+            while (paymentTime < end && safety < 500) {
+                if (paymentTime >= start && paymentTime < end) {
+                    total += sub.price
                 }
+                val cal = java.util.Calendar.getInstance().apply {
+                    timeInMillis = paymentTime
+                }
+                when (sub.cycle) {
+                    "MONTHLY" -> cal.add(java.util.Calendar.MONTH, 1)
+                    "QUARTERLY" -> cal.add(java.util.Calendar.MONTH, 3)
+                    "HALF_YEARLY" -> cal.add(java.util.Calendar.MONTH, 6)
+                    "YEARLY" -> cal.add(java.util.Calendar.YEAR, 1)
+                    "CUSTOM" -> cal.add(java.util.Calendar.DAY_OF_YEAR,
+                        sub.customCycleDays.coerceAtLeast(1))
+                    else -> cal.add(java.util.Calendar.MONTH, 1)
+                }
+                paymentTime = cal.timeInMillis
+                safety++
             }
         }
 
-        result.add(LinePoint(monthLabel, total))
+        result.add(LinePoint(label, total))
     }
     return result
 }

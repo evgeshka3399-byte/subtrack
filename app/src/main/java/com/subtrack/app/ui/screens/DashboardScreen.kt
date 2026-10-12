@@ -18,6 +18,7 @@ import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.components.BarChart
 import com.subtrack.app.ui.components.CategoryBreakdown
 import com.subtrack.app.ui.components.ChartSlice
+import com.subtrack.app.ui.components.ForecastMode
 import com.subtrack.app.ui.components.LineChart
 import com.subtrack.app.ui.components.PieChart
 import com.subtrack.app.ui.components.buildForecast
@@ -36,6 +37,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     val yearlyTotal = calculateYearlyTotal(subscriptions)
 
     var chartMode by remember { mutableStateOf(ChartMode.PIE) }
+    var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
 
     val slices = remember(subscriptions) {
         subscriptions.groupBy { it.category }
@@ -43,9 +45,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 ChartSlice(
                     label = category,
                     value = subs.sumOf {
-                        com.subtrack.app.util.monthlyEquivalent(
-                            it.price, it.cycle, it.customCycleDays
-                        )
+                        com.subtrack.app.util.monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
                     },
                     color = CategoryColors.colorFor(category)
                 )
@@ -53,10 +53,10 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             .sortedByDescending { it.value }
     }
 
-    val forecast = remember(subscriptions) {
-    if (subscriptions.isEmpty()) emptyList()
-    else buildForecast(subscriptions, 12)
-}
+    val forecast = remember(subscriptions, forecastMode) {
+        if (subscriptions.isEmpty()) emptyList()
+        else buildForecast(subscriptions, 12, forecastMode)
+    }
 
     Column(
         modifier = Modifier
@@ -65,28 +65,22 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    "В месяц",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "${formatMoney(monthlyTotal)} ₽",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    "В год: ${formatMoney(yearlyTotal)} ₽",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column {
+            Text(
+                "В месяц",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "${formatMoney(monthlyTotal)} ₽",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "В год: ${formatMoney(yearlyTotal)} ₽",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         if (subscriptions.isNotEmpty()) {
@@ -150,6 +144,25 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 }
             }
         } else {
+            if (chartMode == ChartMode.LINE) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = forecastMode == ForecastMode.AVERAGE,
+                        onClick = { forecastMode = ForecastMode.AVERAGE },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Text("Среднее")
+                    }
+                    SegmentedButton(
+                        selected = forecastMode == ForecastMode.ACTUAL,
+                        onClick = { forecastMode = ForecastMode.ACTUAL },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Text("По факту")
+                    }
+                }
+            }
+
             Card(
                 Modifier.fillMaxWidth().height(340.dp),
                 shape = MaterialTheme.shapes.large
@@ -170,13 +183,17 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             if (chartMode != ChartMode.LINE) {
                 Text("По категориям", style = MaterialTheme.typography.titleMedium)
                 CategoryBreakdown(slices)
-           } else {
-    Text(
-        "Так будут выглядеть твои траты в следующие 12 месяцев, если ничего не менять.",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-}
+            } else {
+                Text(
+                    if (forecastMode == ForecastMode.AVERAGE)
+                        "Среднемесячная нагрузка. Все годовые платежи усреднены по 12 месяцам."
+                    else
+                        "Реальные списания по датам. Видны крупные годовые платежи.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = onShowList,

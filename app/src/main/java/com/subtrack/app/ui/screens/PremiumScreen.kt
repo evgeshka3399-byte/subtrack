@@ -63,7 +63,7 @@ fun PremiumScreen(onBack: () -> Unit) {
                 "Безлимит отмен подписок",
                 "Диаграммы и аналитика",
                 "Экспорт данных в CSV",
-                "Приоритетная поддержка"
+                
             )
 
             features.forEach { feature ->

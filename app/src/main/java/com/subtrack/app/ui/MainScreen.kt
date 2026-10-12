@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: SubTrackViewModel) {
+fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
     val context = LocalContext.current
     var showOnboarding by remember { mutableStateOf(!OnboardingPrefs.hasSeenOnboarding(context)) }
 
@@ -134,9 +134,10 @@ fun MainScreen(viewModel: SubTrackViewModel) {
     SettingsScreen(
         viewModel = viewModel,
         onBack = { navController.popBackStack() },
-        onOpenPremium = { navController.navigate("premium") }
-                  )
-        }
+        onOpenPremium = { navController.navigate("premium") },
+        onThemeChanged = onThemeChanged
+    )
+}
         composable("achievements") {
             AchievementsScreen(viewModel) { navController.popBackStack() }
         }

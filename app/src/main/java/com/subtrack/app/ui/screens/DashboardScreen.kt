@@ -53,7 +53,10 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             .sortedByDescending { it.value }
     }
 
-    val forecast = remember(subscriptions) { buildForecast(subscriptions, 12) }
+    val forecast = remember(subscriptions) {
+    if (subscriptions.isEmpty()) emptyList()
+    else buildForecast(subscriptions, 12)
+}
 
     Column(
         modifier = Modifier
@@ -167,15 +170,13 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             if (chartMode != ChartMode.LINE) {
                 Text("По категориям", style = MaterialTheme.typography.titleMedium)
                 CategoryBreakdown(slices)
-            } else {
-                Text("Прогноз", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "Так будут выглядеть твои траты в следующие 12 месяцев, если ничего не менять.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
+           } else {
+    Text(
+        "Так будут выглядеть твои траты в следующие 12 месяцев, если ничего не менять.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = onShowList,

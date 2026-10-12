@@ -110,13 +110,15 @@ fun LineChart(
             Modifier.fillMaxWidth().padding(start = 56.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            points.forEach { point ->
-                Text(
-                    point.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor,
-                    fontSize = 10.sp
-                )
+            points.forEachIndexed { index, point ->
+                if (index % 3 == 0 || index == points.size - 1) {
+                    Text(
+                        point.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = labelColor,
+                        fontSize = 9.sp
+                    )
+                }
             }
         }
 
@@ -133,19 +135,18 @@ fun LineChart(
 
 /**
  * Строит прогноз на N месяцев.
- * @param mode AVERAGE — среднемесячная нагрузка (все годовые траты усреднены).
- *             ACTUAL  — реальные списания по датам.
+ * @param mode AVERAGE — среднемесячная нагрузка.
+ *             ACTUAL  — реальные списания по датам (прошлое пропускается).
  */
 fun buildForecast(
     subscriptions: List<com.subtrack.app.data.Subscription>,
-    months: Int = 12,
+    months: Int = 24,
     mode: ForecastMode = ForecastMode.AVERAGE
 ): List<LinePoint> {
     val monthNames = listOf("Янв", "Фев", "Мар", "Апр", "Май", "Июн",
                             "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек")
     val now = System.currentTimeMillis()
 
-    // Границы месяцев
     val monthBounds = (0 until months).map { i ->
         val cal = java.util.Calendar.getInstance().apply {
             timeInMillis = now
@@ -167,24 +168,21 @@ fun buildForecast(
 
     return when (mode) {
         ForecastMode.AVERAGE -> {
-            // Месячная нагрузка каждой подписки
             val monthlyTotal = activeSubs.sumOf { sub ->
                 com.subtrack.app.util.monthlyEquivalent(sub.price, sub.cycle, sub.customCycleDays)
             }
             monthBounds.map { (label, _, _) -> LinePoint(label, monthlyTotal) }
         }
 
-                ForecastMode.ACTUAL -> {
+        ForecastMode.ACTUAL -> {
             monthBounds.map { (label, start, end) ->
                 var total = 0.0
                 activeSubs.forEach { sub ->
-                    // Стартуем с firstPaymentDate, но пропускаем всё, что уже в прошлом
                     var paymentTime = sub.firstPaymentDate
-                    val nowTime = System.currentTimeMillis()
 
-                    // Прокручиваем цикл, пока не попадём в будущее
+                    // Пропускаем прошлые и сегодняшние списания
                     var skipSafety = 0
-                    while (paymentTime <= nowTime && skipSafety < 500) {
+                    while (paymentTime <= now && skipSafety < 500) {
                         val cal = java.util.Calendar.getInstance().apply {
                             timeInMillis = paymentTime
                         }
@@ -201,7 +199,7 @@ fun buildForecast(
                         skipSafety++
                     }
 
-                    // Теперь считаем списания внутри целевого месяца
+                    // Считаем будущие списания в границах месяца
                     var safety = 0
                     while (paymentTime < end && safety < 500) {
                         if (paymentTime >= start && paymentTime < end) {
@@ -226,3 +224,5 @@ fun buildForecast(
                 LinePoint(label, total)
             }
         }
+    }
+}

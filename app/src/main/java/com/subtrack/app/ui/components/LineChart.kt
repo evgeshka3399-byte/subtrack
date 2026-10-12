@@ -174,11 +174,34 @@ fun buildForecast(
             monthBounds.map { (label, _, _) -> LinePoint(label, monthlyTotal) }
         }
 
-        ForecastMode.ACTUAL -> {
+                ForecastMode.ACTUAL -> {
             monthBounds.map { (label, start, end) ->
                 var total = 0.0
                 activeSubs.forEach { sub ->
+                    // Стартуем с firstPaymentDate, но пропускаем всё, что уже в прошлом
                     var paymentTime = sub.firstPaymentDate
+                    val nowTime = System.currentTimeMillis()
+
+                    // Прокручиваем цикл, пока не попадём в будущее
+                    var skipSafety = 0
+                    while (paymentTime <= nowTime && skipSafety < 500) {
+                        val cal = java.util.Calendar.getInstance().apply {
+                            timeInMillis = paymentTime
+                        }
+                        when (sub.cycle) {
+                            "MONTHLY" -> cal.add(java.util.Calendar.MONTH, 1)
+                            "QUARTERLY" -> cal.add(java.util.Calendar.MONTH, 3)
+                            "HALF_YEARLY" -> cal.add(java.util.Calendar.MONTH, 6)
+                            "YEARLY" -> cal.add(java.util.Calendar.YEAR, 1)
+                            "CUSTOM" -> cal.add(java.util.Calendar.DAY_OF_YEAR,
+                                sub.customCycleDays.coerceAtLeast(1))
+                            else -> cal.add(java.util.Calendar.MONTH, 1)
+                        }
+                        paymentTime = cal.timeInMillis
+                        skipSafety++
+                    }
+
+                    // Теперь считаем списания внутри целевого месяца
                     var safety = 0
                     while (paymentTime < end && safety < 500) {
                         if (paymentTime >= start && paymentTime < end) {
@@ -203,5 +226,3 @@ fun buildForecast(
                 LinePoint(label, total)
             }
         }
-    }
-}

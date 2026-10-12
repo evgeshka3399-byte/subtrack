@@ -1,10 +1,8 @@
 package com.subtrack.app
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -21,11 +19,9 @@ import com.subtrack.app.ui.theme.SubTrackTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // НЕ вызываем enableEdgeToEdge() — иначе adjustResize не работает
         setContent {
-            // stateKey — «ключ», который меняется при выборе темы
             var themeKey by remember { mutableStateOf(0) }
-
             val context = LocalContext.current
             val themePref = remember(themeKey) { SettingsPrefs.getTheme(context) }
 
@@ -51,9 +47,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
     }
 }

@@ -8,8 +8,6 @@ import java.util.Locale
 fun exportToCsv(subscriptions: List<Subscription>): String {
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
     val sb = StringBuilder()
-
-    // Заголовки
     sb.append("Название;Цена;Валюта;Категория;Цикл;Дата списания;Статус\n")
 
     subscriptions.forEach { sub ->

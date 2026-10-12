@@ -4,15 +4,25 @@ import com.subtrack.app.data.Subscription
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
+/**
+ * Вычисляет дату следующего списания.
+ * Начинает с firstPaymentDate и прибавляет цикл, пока дата <= сегодня.
+ * Если firstPaymentDate в будущем — возвращает её как есть.
+ */
 fun calculateNextPaymentDate(
     firstPaymentDate: Long,
     cycle: String,
     customDays: Int
 ): Long {
     val now = System.currentTimeMillis()
-    val calendar = Calendar.getInstance().apply { timeInMillis = firstPaymentDate }
 
+    // Если дата в будущем — это и есть следующее списание
+    if (firstPaymentDate > now) return firstPaymentDate
+
+    val calendar = Calendar.getInstance().apply { timeInMillis = firstPaymentDate }
     var safety = 0
+
+    // Прибавляем цикл, пока не окажемся в будущем
     while (calendar.timeInMillis <= now && safety < 1000) {
         when (cycle) {
             "MONTHLY" -> calendar.add(Calendar.MONTH, 1)

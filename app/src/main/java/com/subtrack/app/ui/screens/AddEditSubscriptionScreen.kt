@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -17,8 +18,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.data.Subscription
+import com.subtrack.app.data.SubscriptionCatalog
 import com.subtrack.app.ui.SubTrackViewModel
-import com.subtrack.app.util.CategoryDetector
 import com.subtrack.app.util.calculateNextPaymentDate
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -45,27 +46,17 @@ fun AddEditSubscriptionScreen(
     var trialPrice by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
     var categoryManuallyChanged by remember { mutableStateOf(false) }
-    var showCategoryPicker by remember { mutableStateOf(false) }
-    var categoryOptions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showSuggestions by remember { mutableStateOf(false) }
+    var suggestions by remember { mutableStateOf<List<SubscriptionCatalog.CatalogItem>>(emptyList()) }
 
-    // Автоподбор категории при вводе названия
+    // Автодополнение названия
     LaunchedEffect(name) {
-        if (!categoryManuallyChanged && editId == null) {
-            val detected = CategoryDetector.detect(name)
-            when {
-                detected.isEmpty() -> {
-                    if (name.isBlank()) category = "Другое"
-                }
-                detected.size == 1 -> {
-                    category = detected.first()
-                }
-                else -> {
-                    // Несколько вариантов — предлагаем выбрать
-                    categoryOptions = detected
-                    showCategoryPicker = true
-                    category = detected.first()
-                }
-            }
+        if (name.isNotBlank() && !categoryManuallyChanged) {
+            suggestions = SubscriptionCatalog.search(name)
+            showSuggestions = suggestions.isNotEmpty() &&
+                    !suggestions.any { it.name.equals(name, ignoreCase = true) }
+        } else {
+            showSuggestions = false
         }
     }
 
@@ -105,22 +96,99 @@ fun AddEditSubscriptionScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .pointerInput(Unit) {
-                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                        showSuggestions = false
+                    })
                 }
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = {
-                    name = it
-                    categoryManuallyChanged = false
-                },
-                label = { Text("Название") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            // === НАЗВАНИЕ С АВТОДОПОЛНЕНИЕМ ===
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        categoryManuallyChanged = false
+                    },
+                    label = { Text("Название") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (showSuggestions && suggestions.isNotEmpty()) {
+                    Card(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Column {
+                            suggestions.forEach { item ->
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(
+                                        Modifier.weight(1f).pointerInput(item.name) {
+                                            detectTapGestures(onTap = {
+                                                name = item.name
+                                                category = item.category
+                                                categoryManuallyChanged = true
+                                                showSuggestions = false
+                                                focusManager.clearFocus()
+                                            })
+                                        }
+                                    ) {
+                                        Text(
+                                            item.name,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Text(
+                                            item.category,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                if (item != suggestions.last()) {
+                                    Divider(
+                                        color = MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Подсказка про категорию
+            if (category != "Другое") {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Категория определена: $category",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
             OutlinedTextField(
                 value = price,
@@ -158,11 +226,6 @@ fun AddEditSubscriptionScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
-            Text(
-                "Укажи дату, когда подписка была оформлена. Если раньше — прогноз учтёт это.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             DropdownField("Цикл", cycle, listOf(
                 "MONTHLY" to "Месяц",
@@ -249,37 +312,6 @@ fun AddEditSubscriptionScreen(
                 Text("Сохранить")
             }
         }
-    }
-
-    // Диалог выбора категории, если автоподбор нашёл несколько вариантов
-    if (showCategoryPicker && categoryOptions.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = { showCategoryPicker = false },
-            title = { Text("Выбери категорию") },
-            text = {
-                Column {
-                    Text("Мы нашли несколько подходящих категорий:")
-                    Spacer(Modifier.height(12.dp))
-                    categoryOptions.forEach { option ->
-                        TextButton(
-                            onClick = {
-                                category = option
-                                categoryManuallyChanged = true
-                                showCategoryPicker = false
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(option)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showCategoryPicker = false }) {
-                    Text("Оставить «${categoryOptions.first()}»")
-                }
-            }
-        )
     }
 }
 

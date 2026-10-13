@@ -1,8 +1,12 @@
 package com.subtrack.app
 
+import android.Manifest
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -19,7 +23,6 @@ import com.subtrack.app.ui.theme.SubTrackTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // НЕ вызываем enableEdgeToEdge() — иначе adjustResize не работает
         setContent {
             var themeKey by remember { mutableStateOf(0) }
             val context = LocalContext.current
@@ -31,6 +34,17 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
+            // Запрос разрешения на уведомления (Android 13+)
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { /* результат не важен */ }
+
+            LaunchedEffect(Unit) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+
             SubTrackTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -38,7 +52,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val app = application as SubTrackApp
                     val viewModel: SubTrackViewModel = viewModel(
-                        factory = SubTrackViewModel.Factory(app.repository)
+                        factory = SubTrackViewModel.Factory(app, app.repository)
                     )
                     MainScreen(
                         viewModel = viewModel,

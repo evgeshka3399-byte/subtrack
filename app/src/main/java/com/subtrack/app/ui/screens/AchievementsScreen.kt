@@ -129,12 +129,11 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
 
     val currentLevel = getCurrentLevel(count)
 
-    // Нежный пастельный градиент
     val softGradient = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFB2DFDB), // нежно-мятный
-            Color(0xFFB3E5FC), // нежно-голубой
-            Color(0xFFD1C4E9)  // нежно-лавандовый
+            Color(0xFFB2DFDB),
+            Color(0xFFB3E5FC),
+            Color(0xFFD1C4E9)
         )
     )
 
@@ -154,6 +153,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // === ПОСЛОВИЦА + СУММА ЭКОНОМИИ В ОДНОМ БЛОКЕ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -163,9 +163,55 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                 )
             ) {
                 Column(
-                    Modifier.padding(24.dp).fillMaxWidth(),
+                    Modifier.padding(20.dp).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Пословица СВЕРХУ над "Ты сэкономил"
+                    when {
+                        quote != null -> {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .alpha(pulseAlpha)
+                                    .background(softGradient, RoundedCornerShape(20.dp))
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    quote,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontStyle = FontStyle.Italic,
+                                    textAlign = TextAlign.Center,
+                                    color = Color(0xFF2E3A46)
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                        }
+                        startMessage != null -> {
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        RoundedCornerShape(20.dp)
+                                    )
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    startMessage,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                        }
+                    }
+
+                    // Ты сэкономил
                     Text(
                         "Ты сэкономил",
                         style = MaterialTheme.typography.titleMedium,
@@ -194,10 +240,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        item {
-            Text("Достижения", style = MaterialTheme.typography.titleMedium)
-        }
-
+        // === ПОХВАЛА ПЕРВАЯ ОТМЕНА ===
         if (count >= 1) {
             item {
                 Card(
@@ -230,50 +273,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        item {
-            when {
-                quote != null -> {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .alpha(pulseAlpha)
-                            .background(softGradient, RoundedCornerShape(24.dp))
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            quote,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic,
-                            textAlign = TextAlign.Center,
-                            color = Color(0xFF2E3A46)
-                        )
-                    }
-                }
-                startMessage != null -> {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(24.dp)
-                            )
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            startMessage,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-
+        // === УРОВЕНЬ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -333,42 +333,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        item {
-            Text("Вехи", style = MaterialTheme.typography.titleMedium)
-        }
-
-        val milestones = listOf(
-            Achievement("Экономия 1000 ₽", "Сэкономить 1000 ₽ в год", yearlySaved >= 1000),
-            Achievement("Экономия 5000 ₽", "Сэкономить 5000 ₽ в год", yearlySaved >= 5000),
-            Achievement("Экономия 10000 ₽", "Сэкономить 10000 ₽ в год", yearlySaved >= 10000),
-            Achievement("Экономия 50000 ₽", "Сэкономить 50000 ₽ в год", yearlySaved >= 50000)
-        )
-
-        items(milestones) { a ->
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(
-                    containerColor = if (a.unlocked) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Star,
-                        contentDescription = null,
-                        tint = if (a.unlocked) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(a.title, style = MaterialTheme.typography.titleMedium)
-                        Text(a.description, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
-        }
-
+        // === ИСТОРИЯ ОТМЕН ===
         if (cancelled.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))
@@ -412,5 +377,3 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         }
     }
 }
-
-data class Achievement(val title: String, val description: String, val unlocked: Boolean)

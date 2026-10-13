@@ -36,6 +36,7 @@ import java.util.Locale
 fun AddEditSubscriptionScreen(
     viewModel: SubTrackViewModel,
     editId: Long?,
+    preselectedCategory: String? = null,
     onDone: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -45,7 +46,7 @@ fun AddEditSubscriptionScreen(
 
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Другое") }
+    var category by remember { mutableStateOf(preselectedCategory ?: "Другое") }
     var cycle by remember { mutableStateOf("MONTHLY") }
     var firstPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var originalFirstPayment by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -54,7 +55,9 @@ fun AddEditSubscriptionScreen(
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
-    var categoryManuallyChanged by remember { mutableStateOf(false) }
+    var categoryManuallyChanged by remember {
+        mutableStateOf(preselectedCategory != null)
+    }
     var showSuggestions by remember { mutableStateOf(false) }
     var suggestions by remember { mutableStateOf<List<SubscriptionCatalog.CatalogItem>>(emptyList()) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -269,22 +272,21 @@ fun AddEditSubscriptionScreen(
                         val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                         val trialDaysValue = trialDays.toIntOrNull() ?: 7
 
-                       val trialEndDate = if (hasTrial) {
-    firstPaymentDate + (trialDays.toIntOrNull() ?: 7) * 24L * 60 * 60 * 1000
-} else {
-    null
-}
+                        val trialEndDate = if (hasTrial) {
+                            firstPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000
+                        } else {
+                            null
+                        }
 
-val next = if (editId != null &&
-    originalFirstPayment == firstPaymentDate &&
-    originalNextPayment != null) {
-    originalNextPayment!!
-} else if (trialEndDate != null) {
-    // Если есть пробный — следующее списание ровно в день окончания пробного
-    trialEndDate
-} else {
-    calculateNextPaymentDate(firstPaymentDate, cycle, 30)
-}
+                        val next = if (editId != null &&
+                            originalFirstPayment == firstPaymentDate &&
+                            originalNextPayment != null) {
+                            originalNextPayment!!
+                        } else if (trialEndDate != null) {
+                            trialEndDate
+                        } else {
+                            calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+                        }
 
                         val sub = Subscription(
                             id = editId ?: 0,
@@ -296,7 +298,7 @@ val next = if (editId != null &&
                             firstPaymentDate = firstPaymentDate,
                             nextPaymentDate = next,
                             hasTrial = hasTrial,
-                           trialEndDate = trialEndDate,
+                            trialEndDate = trialEndDate,
                             priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
                         )
                         scope.launch {

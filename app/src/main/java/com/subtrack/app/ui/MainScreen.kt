@@ -101,9 +101,13 @@ fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 when (page) {
-                    0 -> DashboardScreen(viewModel) {
-                        scope.launch { pagerState.animateScrollToPage(1) }
-                    }
+                    0 -> DashboardScreen(
+                        viewModel = viewModel,
+                        onShowList = {
+                            scope.launch { pagerState.animateScrollToPage(1) }
+                        },
+                        onAddClick = { navController.navigate("add") }
+                    )
                     1 -> SubscriptionListScreen(
                         viewModel = viewModel,
                         onEditClick = { id -> navController.navigate("edit/$id") },

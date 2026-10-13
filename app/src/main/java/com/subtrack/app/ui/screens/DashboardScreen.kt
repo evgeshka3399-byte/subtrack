@@ -3,10 +3,6 @@ package com.subtrack.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,18 +22,27 @@ import com.subtrack.app.ui.theme.CategoryColors
 import com.subtrack.app.util.calculateMonthlyTotal
 import com.subtrack.app.util.calculateYearlyTotal
 import com.subtrack.app.util.formatMoney
+import com.subtrack.app.util.monthlyEquivalent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
-    val totalSaved by viewModel.totalSaved.collectAsState()
+    val cancelled by viewModel.cancelledSubscriptions.collectAsState()
 
-    val monthlyTotal = calculateMonthlyTotal(subscriptions)
-    val yearlyTotal = calculateYearlyTotal(subscriptions)
+    // ТРАТЫ
+    val monthlySpent = calculateMonthlyTotal(subscriptions)
+    val yearlySpent = calculateYearlyTotal(subscriptions)
+
+    // ЭКОНОМИЯ — сумма отменённых, приведённая к месяцу/году
+    val monthlySaved = cancelled.sumOf {
+        monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
+    }
+    val yearlySaved = monthlySaved * 12
 
     var chartMode by remember { mutableStateOf(ChartMode.PIE) }
     var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
+    var sliderPosition by remember { mutableStateOf(0f) }
 
     val slices = remember(subscriptions) {
         subscriptions.groupBy { it.category }
@@ -45,7 +50,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 ChartSlice(
                     label = category,
                     value = subs.sumOf {
-                        com.subtrack.app.util.monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
+                        monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
                     },
                     color = CategoryColors.colorFor(category)
                 )
@@ -65,66 +70,152 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column {
-            Text(
-                "В месяц",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "${formatMoney(monthlyTotal)} ₽",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                "В год: ${formatMoney(yearlyTotal)} ₽",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (subscriptions.isNotEmpty()) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = chartMode == ChartMode.PIE,
-                    onClick = { chartMode = ChartMode.PIE },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                    icon = { Icon(Icons.Default.PieChart, null) }
-                ) {}
-                SegmentedButton(
-                    selected = chartMode == ChartMode.BAR,
-                    onClick = { chartMode = ChartMode.BAR },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                    icon = { Icon(Icons.Default.BarChart, null) }
-                ) {}
-                SegmentedButton(
-                    selected = chartMode == ChartMode.LINE,
-                    onClick = { chartMode = ChartMode.LINE },
-                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                    icon = { Icon(Icons.Default.ShowChart, null) }
-                ) {}
-            }
-        }
-
-        if (totalSaved > 0) {
+        // === БЛОКИ ТРАТЫ / ЭКОНОМИЯ ===
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                Modifier.weight(1f),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        "ТРАТЫ",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "В месяц",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        "${formatMoney(monthlySpent)} ₽",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "В год",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        "${formatMoney(yearlySpent)} ₽",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Card(
+                Modifier.weight(1f),
                 shape = MaterialTheme.shapes.large,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Ты уже сэкономил", style = MaterialTheme.typography.labelMedium)
                     Text(
-                        "${formatMoney(totalSaved)} ₽",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
+                        "ЭКОНОМИЯ",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "В месяц",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        "${formatMoney(monthlySaved)} ₽",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "В год",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        "${formatMoney(yearlySaved)} ₽",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
         }
 
+        // === ПЕРЕКЛЮЧАТЕЛЬ ГРАФИКОВ (ПОЛЗУНОК) ===
+        if (subscriptions.isNotEmpty()) {
+            Column {
+                Text(
+                    "График: ${chartMode.title}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Slider(
+                    value = sliderPosition,
+                    onValueChange = {
+                        sliderPosition = it
+                        chartMode = ChartMode.values()[
+                            it.roundToInt().coerceIn(0, ChartMode.values().size - 1)
+                        ]
+                    },
+                    valueRange = 0f..(ChartMode.values().size - 1).toFloat(),
+                    steps = ChartMode.values().size - 2,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    ChartMode.values().forEach { mode ->
+                        Text(
+                            mode.shortTitle,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (chartMode == mode) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            // Переключатель «Среднее / По факту» — только для графика «Линия»
+            if (chartMode == ChartMode.LINE) {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = forecastMode == ForecastMode.AVERAGE,
+                        onClick = { forecastMode = ForecastMode.AVERAGE },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                    ) {
+                        Text("Среднее")
+                    }
+                    SegmentedButton(
+                        selected = forecastMode == ForecastMode.ACTUAL,
+                        onClick = { forecastMode = ForecastMode.ACTUAL },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                    ) {
+                        Text("По факту")
+                    }
+                }
+            }
+        }
+
+        // === САМ ГРАФИК ===
         if (subscriptions.isEmpty()) {
             Card(
                 Modifier.fillMaxWidth(),
@@ -144,25 +235,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 }
             }
         } else {
-            if (chartMode == ChartMode.LINE) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = forecastMode == ForecastMode.AVERAGE,
-                        onClick = { forecastMode = ForecastMode.AVERAGE },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) {
-                        Text("Среднее")
-                    }
-                    SegmentedButton(
-                        selected = forecastMode == ForecastMode.ACTUAL,
-                        onClick = { forecastMode = ForecastMode.ACTUAL },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) {
-                        Text("По факту")
-                    }
-                }
-            }
-
             Card(
                 Modifier.fillMaxWidth().height(340.dp),
                 shape = MaterialTheme.shapes.large
@@ -176,19 +248,34 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                             lineColor = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.fillMaxSize()
                         )
+                        ChartMode.AREA -> AreaChart(
+                            points = forecast,
+                            lineColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        ChartMode.HISTOGRAM -> HistogramChart(
+                            subscriptions = subscriptions,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
             }
 
-            if (chartMode != ChartMode.LINE) {
+            if (chartMode == ChartMode.PIE || chartMode == ChartMode.BAR) {
                 Text("По категориям", style = MaterialTheme.typography.titleMedium)
                 CategoryBreakdown(slices)
-            } else {
+            } else if (chartMode == ChartMode.LINE || chartMode == ChartMode.AREA) {
                 Text(
                     if (forecastMode == ForecastMode.AVERAGE)
                         "Среднемесячная нагрузка. Все годовые платежи усреднены по 12 месяцам."
                     else
                         "Реальные списания по датам. Видны крупные годовые платежи.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    "Распределение подписок по цене.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -206,4 +293,10 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     }
 }
 
-enum class ChartMode { PIE, BAR, LINE }
+enum class ChartMode(val title: String, val shortTitle: String) {
+    PIE("Круговая", "Круг"),
+    BAR("Столбчатая", "Столб"),
+    LINE("Линейная", "Линия"),
+    AREA("Область", "Область"),
+    HISTOGRAM("Гистограмма", "Гист")
+}

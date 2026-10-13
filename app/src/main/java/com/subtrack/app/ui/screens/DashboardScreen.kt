@@ -16,7 +16,7 @@ import com.subtrack.app.ui.components.BarChart
 import com.subtrack.app.ui.components.CategoryBreakdown
 import com.subtrack.app.ui.components.ChartSlice
 import com.subtrack.app.ui.components.ForecastMode
-import com.subtrack.app.ui.components.HistogramChart
+import com.subtrack.app.ui.components.MonthlySpendingChart
 import com.subtrack.app.ui.components.PieChart
 import com.subtrack.app.ui.components.buildForecast
 import com.subtrack.app.ui.theme.CategoryColors
@@ -44,7 +44,7 @@ fun DashboardScreen(
     }
     val yearlySaved = monthlySaved * 12
 
-    var chartMode by remember { mutableStateOf(ChartMode.PIE) }
+    var chartMode by remember { mutableStateOf(ChartMode.MONTHLY) }
     var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
     var sliderPosition by remember { mutableStateOf(0f) }
 
@@ -241,20 +241,20 @@ fun DashboardScreen(
             }
 
             Card(
-                Modifier.fillMaxWidth().height(340.dp),
+                Modifier.fillMaxWidth().height(400.dp),
                 shape = MaterialTheme.shapes.large
             ) {
                 Box(Modifier.fillMaxSize().padding(16.dp)) {
                     when (chartMode) {
+                        ChartMode.MONTHLY -> MonthlySpendingChart(
+                            subscriptions = subscriptions,
+                            modifier = Modifier.fillMaxSize()
+                        )
                         ChartMode.PIE -> PieChart(slices = slices, modifier = Modifier.fillMaxSize())
                         ChartMode.BAR -> BarChart(slices = slices, modifier = Modifier.fillMaxSize())
                         ChartMode.AREA -> AreaChart(
                             points = forecast,
                             lineColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        ChartMode.HISTOGRAM -> HistogramChart(
-                            subscriptions = subscriptions,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -273,20 +273,14 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                Text(
-                    "Распределение подписок по цене.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
 }
 
 enum class ChartMode(val title: String, val shortTitle: String) {
+    MONTHLY("Траты в месяц", "Месяц"),
     PIE("Круговая", "Круг"),
     BAR("Столбчатая", "Столб"),
-    AREA("Область", "Область"),
-    HISTOGRAM("Гистограмма", "Гистограмма")
+    AREA("Область", "Область")
 }

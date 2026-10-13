@@ -11,6 +11,7 @@ import com.subtrack.app.MainActivity
 import com.subtrack.app.SubTrackApp
 import com.subtrack.app.util.formatMoney
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.TimeUnit
 
 class ReminderWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
@@ -31,19 +32,35 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
             }
         }
 
-        // Если подписки нет — не показываем
         if (subscription == null) return Result.success()
-        // Если отменена — не показываем
         if (subscription.isCancelled) return Result.success()
 
-        val intent = Intent(applicationContext, MainActivity::class.java)
+        // === ПРОВЕРКА: до списания действительно <= daysBefore дней ===
+        val now = System.currentTimeMillis()
+        val diff = subscription.nextPaymentDate - now
+        val daysLeft = TimeUnit.MILLISECONDS.toDays(diff)
+
+        // Если до списания больше чем daysBefore + 1 день — не показываем
+        if (daysLeft > daysBefore + 1) return Result.success()
+
+        // Если списание уже прошло — не показываем
+        if (daysLeft < 0) return Result.success()
+
+        // === Открываем CancelScreen для этой подписки ===
+        val intent = Intent(applicationContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("open_cancel_id", id)
+        }
+
         val pending = PendingIntent.getActivity(
-            applicationContext, id.toInt(), intent,
+            applicationContext,
+            id.toInt(),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val title = "Скоро списание"
-        val text = "Через $daysBefore дн. спишут ${formatMoney(price)} $currency за «$name». Отменить?"
+        val text = "Через $daysLeft дн. спишут ${formatMoney(price)} $currency за «$name». Отменить?"
 
         val notification = NotificationCompat.Builder(
             applicationContext,

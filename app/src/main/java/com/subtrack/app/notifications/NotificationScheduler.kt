@@ -4,9 +4,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import androidx.core.app.NotificationCompat
 import androidx.work.*
-import com.subtrack.app.R
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 object NotificationScheduler {
@@ -27,13 +26,40 @@ object NotificationScheduler {
         }
     }
 
-    fun scheduleReminder(context: Context, subscriptionId: Long, name: String, timestamp: Long) {
-        val delay = timestamp - System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2)
+    /**
+     * Планирует уведомление за N дней до указанной даты (nextPaymentDate).
+     */
+    fun scheduleReminder(
+        context: Context,
+        subscriptionId: Long,
+        name: String,
+        nextPaymentDate: Long,
+        daysBefore: Int,
+        price: Double,
+        currency: String
+    ) {
+        // Целевое время: nextPaymentDate минус N дней, в 10:00 утра
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = nextPaymentDate
+            add(Calendar.DAY_OF_YEAR, -daysBefore)
+            set(Calendar.HOUR_OF_DAY, 10)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val targetTime = cal.timeInMillis
+        val now = System.currentTimeMillis()
+        val delay = targetTime - now
+
+        // Если уже прошло — не планируем
         if (delay <= 0) return
 
         val data = workDataOf(
             "sub_id" to subscriptionId,
-            "sub_name" to name
+            "sub_name" to name,
+            "price" to price,
+            "currency" to currency,
+            "days_before" to daysBefore
         )
 
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
@@ -43,7 +69,11 @@ object NotificationScheduler {
             .build()
 
         WorkManager.getInstance(context)
-            .enqueueUniqueWork("reminder_$subscriptionId", ExistingWorkPolicy.REPLACE, request)
+            .enqueueUniqueWork(
+                "reminder_$subscriptionId",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
     }
 
     fun cancelReminder(context: Context, subscriptionId: Long) {

@@ -1,6 +1,5 @@
 package com.subtrack.app.ui
-import com.subtrack.app.ui.screens.SettingsScreen
-import com.subtrack.app.ui.screens.PremiumScreen
+
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -35,7 +34,7 @@ fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
     }
 
     val navController = rememberNavController()
-   val tabs = listOf("Главная", "Подписки", "Отмены", "Экономия")
+    val tabs = listOf("Аналитика", "Подписки", "Достижения")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val scope = rememberCoroutineScope()
 
@@ -57,7 +56,7 @@ fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
             )
         },
         floatingActionButton = {
-            if (pagerState.currentPage == 0 || pagerState.currentPage == 1) {
+            if (pagerState.currentPage == 1) {
                 FloatingActionButton(
                     onClick = { navController.navigate("add") },
                     shape = MaterialTheme.shapes.large
@@ -108,10 +107,12 @@ fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
                     1 -> SubscriptionListScreen(
                         viewModel = viewModel,
                         onEditClick = { id -> navController.navigate("edit/$id") },
-                        onCancelClick = { id -> navController.navigate("cancel/$id") }
+                        onCancelClick = { id -> navController.navigate("cancel/$id") },
+                        onAddInCategory = { category ->
+                            navController.navigate("add_in_category/$category")
+                        }
                     )
-                    2 -> CancelledScreen(viewModel)
-                    3 -> SavingsScreen(viewModel)
+                    2 -> AchievementsScreen(viewModel, onBack = {})
                 }
             }
         }
@@ -120,29 +121,30 @@ fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
     NavHost(navController = navController, startDestination = "root") {
         composable("root") { }
         composable("add") {
-            AddEditSubscriptionScreen(viewModel, null) { navController.popBackStack() }
+            AddEditSubscriptionScreen(viewModel, null, null) { navController.popBackStack() }
+        }
+        composable("add_in_category/{category}") { entry ->
+            val category = entry.arguments?.getString("category")
+            AddEditSubscriptionScreen(viewModel, null, category) { navController.popBackStack() }
         }
         composable("edit/{id}") { entry ->
             val id = entry.arguments?.getString("id")?.toLongOrNull()
-            AddEditSubscriptionScreen(viewModel, id) { navController.popBackStack() }
+            AddEditSubscriptionScreen(viewModel, id, null) { navController.popBackStack() }
         }
         composable("cancel/{id}") { entry ->
             val id = entry.arguments?.getString("id")?.toLongOrNull()
             CancelScreen(viewModel, id) { navController.popBackStack() }
         }
         composable("settings") {
-    SettingsScreen(
-        viewModel = viewModel,
-        onBack = { navController.popBackStack() },
-        onOpenPremium = { navController.navigate("premium") },
-        onThemeChanged = onThemeChanged
-    )
-}
-        composable("achievements") {
-            AchievementsScreen(viewModel) { navController.popBackStack() }
+            SettingsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onOpenPremium = { navController.navigate("premium") },
+                onThemeChanged = onThemeChanged
+            )
         }
         composable("premium") {
-        PremiumScreen { navController.popBackStack() }
+            PremiumScreen { navController.popBackStack() }
         }
     }
 }

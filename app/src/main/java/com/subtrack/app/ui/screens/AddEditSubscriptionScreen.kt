@@ -48,9 +48,10 @@ fun AddEditSubscriptionScreen(
     var price by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(preselectedCategory ?: "Другое") }
     var cycle by remember { mutableStateOf("MONTHLY") }
-    var firstPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
-    var originalFirstPayment by remember { mutableStateOf(System.currentTimeMillis()) }
+    // Показываем nextPaymentDate (следующее списание), а не firstPaymentDate
+    var nextPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var originalNextPayment by remember { mutableStateOf<Long?>(null) }
+    var originalCycle by remember { mutableStateOf("MONTHLY") }
     var hasTrial by remember { mutableStateOf(false) }
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
@@ -79,9 +80,9 @@ fun AddEditSubscriptionScreen(
                 price = sub.price.toString()
                 category = sub.category
                 cycle = sub.cycle
-                firstPaymentDate = sub.firstPaymentDate
-                originalFirstPayment = sub.firstPaymentDate
+                nextPaymentDate = sub.nextPaymentDate
                 originalNextPayment = sub.nextPaymentDate
+                originalCycle = sub.cycle
                 hasTrial = sub.hasTrial
                 trialPrice = sub.priceAfterTrial?.toString() ?: ""
                 categoryManuallyChanged = true
@@ -206,11 +207,12 @@ fun AddEditSubscriptionScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                // === ДАТА СЛЕДУЮЩЕГО СПИСАНИЯ (было "Дата первого списания") ===
                 OutlinedTextField(
-                    value = dateFormat.format(Date(firstPaymentDate)),
+                    value = dateFormat.format(Date(nextPaymentDate)),
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Дата первого списания") },
+                    label = { Text("Дата следующего списания") },
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
                             Icon(Icons.Default.CalendarMonth, contentDescription = "Выбрать дату")
@@ -272,20 +274,24 @@ fun AddEditSubscriptionScreen(
                         val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                         val trialDaysValue = trialDays.toIntOrNull() ?: 7
 
-                        val trialEndDate = if (hasTrial) {
-                            firstPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000
+                        // Если редактируем и дата/цикл не менялись — сохраняем оригинальные значения
+                        val finalNext = if (editId != null &&
+                            originalNextPayment == nextPaymentDate &&
+                            originalCycle == cycle) {
+                            originalNextPayment!!
                         } else {
-                            null
+                            // Если пользователь поменял дату/цикл — пересчитываем
+                            if (nextPaymentDate > System.currentTimeMillis()) {
+                                nextPaymentDate
+                            } else {
+                                calculateNextPaymentDate(nextPaymentDate, cycle, 30)
+                            }
                         }
 
-                        val next = if (editId != null &&
-                            originalFirstPayment == firstPaymentDate &&
-                            originalNextPayment != null) {
-                            originalNextPayment!!
-                        } else if (trialEndDate != null) {
-                            trialEndDate
+                        val trialEndDate = if (hasTrial) {
+                            nextPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000
                         } else {
-                            calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+                            null
                         }
 
                         val sub = Subscription(
@@ -295,8 +301,12 @@ fun AddEditSubscriptionScreen(
                             category = category,
                             cycle = cycle,
                             customCycleDays = 30,
-                            firstPaymentDate = firstPaymentDate,
-                            nextPaymentDate = next,
+                            firstPaymentDate = if (editId != null && originalNextPayment != null) {
+                                originalNextPayment!!
+                            } else {
+                                nextPaymentDate
+                            },
+                            nextPaymentDate = finalNext,
                             hasTrial = hasTrial,
                             trialEndDate = trialEndDate,
                             priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
@@ -318,7 +328,7 @@ fun AddEditSubscriptionScreen(
     }
 
     if (showDatePicker) {
-        val calendar = Calendar.getInstance().apply { timeInMillis = firstPaymentDate }
+        val calendar = Calendar.getInstance().apply { timeInMillis = nextPaymentDate }
         DatePickerDialog(
             context,
             { _, year, month, dayOfMonth ->
@@ -332,7 +342,7 @@ fun AddEditSubscriptionScreen(
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
                 }
-                firstPaymentDate = cal.timeInMillis
+                nextPaymentDate = cal.timeInMillis
                 showDatePicker = false
             },
             calendar.get(Calendar.YEAR),

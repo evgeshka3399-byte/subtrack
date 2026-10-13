@@ -46,6 +46,7 @@ fun SettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showReminderDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
     var showMessage by remember { mutableStateOf<String?>(null) }
 
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
@@ -68,6 +69,8 @@ fun SettingsScreen(
     }
 
     // === ИМПОРТ ===
+    var clearBeforeImport by remember { mutableStateOf(false) }
+
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -76,8 +79,14 @@ fun SettingsScreen(
                 val json = BackupManager.readFromUri(context, uri)
                 val imported = BackupManager.parseJson(json)
                 scope.launch {
+                    if (clearBeforeImport) {
+                        viewModel.clearAll()
+                    }
                     imported.forEach { viewModel.addSubscription(it) }
-                    showMessage = "Импортировано ${imported.size} подписок"
+                    showMessage = if (clearBeforeImport)
+                        "Импортировано ${imported.size} подписок (старые удалены)"
+                    else
+                        "Импортировано ${imported.size} подписок"
                 }
             } catch (e: Exception) {
                 showMessage = "Ошибка импорта: ${e.message}"
@@ -140,9 +149,7 @@ fun SettingsScreen(
                 icon = Icons.Default.FileUpload,
                 title = "Импорт данных",
                 subtitle = "Восстановить из файла",
-                onClick = {
-                    importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
-                }
+                onClick = { showImportDialog = true }
             )
 
             SettingsItem(
@@ -226,6 +233,81 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showReminderDialog = false }) { Text("Отмена") }
+            }
+        )
+    }
+
+    // === ДИАЛОГ ИМПОРТА ===
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportDialog = false },
+            title = { Text("Импорт данных") },
+            text = {
+                Column {
+                    Text("Что делать с текущими подписками?")
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                clearBeforeImport = false
+                                showImportDialog = false
+                                importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = !clearBeforeImport,
+                            onClick = {
+                                clearBeforeImport = false
+                                showImportDialog = false
+                                importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                            }
+                        )
+                        Column {
+                            Text("Добавить к текущим")
+                            Text(
+                                "Импортированные добавятся к существующим",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                clearBeforeImport = true
+                                showImportDialog = false
+                                importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                            }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = clearBeforeImport,
+                            onClick = {
+                                clearBeforeImport = true
+                                showImportDialog = false
+                                importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                            }
+                        )
+                        Column {
+                            Text("Очистить и заменить")
+                            Text(
+                                "Все текущие подписки будут удалены",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showImportDialog = false }) { Text("Отмена") }
             }
         )
     }

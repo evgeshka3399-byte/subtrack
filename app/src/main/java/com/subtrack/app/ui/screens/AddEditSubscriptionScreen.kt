@@ -269,13 +269,22 @@ fun AddEditSubscriptionScreen(
                         val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                         val trialDaysValue = trialDays.toIntOrNull() ?: 7
 
-                        val next = if (editId != null &&
-                            originalFirstPayment == firstPaymentDate &&
-                            originalNextPayment != null) {
-                            originalNextPayment!!
-                        } else {
-                            calculateNextPaymentDate(firstPaymentDate, cycle, 30)
-                        }
+                       val trialEndDate = if (hasTrial) {
+    firstPaymentDate + (trialDays.toIntOrNull() ?: 7) * 24L * 60 * 60 * 1000
+} else {
+    null
+}
+
+val next = if (editId != null &&
+    originalFirstPayment == firstPaymentDate &&
+    originalNextPayment != null) {
+    originalNextPayment!!
+} else if (trialEndDate != null) {
+    // Если есть пробный — следующее списание ровно в день окончания пробного
+    trialEndDate
+} else {
+    calculateNextPaymentDate(firstPaymentDate, cycle, 30)
+}
 
                         val sub = Subscription(
                             id = editId ?: 0,
@@ -287,7 +296,7 @@ fun AddEditSubscriptionScreen(
                             firstPaymentDate = firstPaymentDate,
                             nextPaymentDate = next,
                             hasTrial = hasTrial,
-                            trialEndDate = if (hasTrial) firstPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000 else null,
+                           trialEndDate = trialEndDate,
                             priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
                         )
                         scope.launch {

@@ -76,7 +76,8 @@ fun calculateYearlyTotal(subs: List<Subscription>): Double {
 
 fun daysUntil(timestamp: Long): Long {
     val diff = timestamp - System.currentTimeMillis()
-    return TimeUnit.MILLISECONDS.toDays(diff)
+    val days = TimeUnit.MILLISECONDS.toDays(diff)
+    return if (days < 0) 0 else days
 }
 
 fun formatMoney(value: Double): String {

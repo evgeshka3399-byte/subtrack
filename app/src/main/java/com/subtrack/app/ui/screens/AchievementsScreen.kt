@@ -37,7 +37,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // === СУММА ЭКОНОМИИ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -78,7 +77,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === ДОСТИЖЕНИЯ ===
         item {
             Text("Достижения", style = MaterialTheme.typography.titleMedium)
         }
@@ -115,7 +113,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === ИСТОРИЯ ОТМЕН ===
         if (cancelled.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))
@@ -144,4 +141,20 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                             TextButton(onClick = {
                                 viewModel.restoreSubscription(sub)
                             }) {
-                                Text("Вос
+                                Text("Восстановить")
+                            }
+                        }
+                        Text(
+                            "+${formatMoney(sub.price)} ₽",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class Achievement(val title: String, val description: String, val unlocked: Boolean)

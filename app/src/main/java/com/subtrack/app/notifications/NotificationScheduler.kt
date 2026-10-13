@@ -26,9 +26,6 @@ object NotificationScheduler {
         }
     }
 
-    /**
-     * Планирует уведомление за N дней до указанной даты (nextPaymentDate).
-     */
     fun scheduleReminder(
         context: Context,
         subscriptionId: Long,
@@ -38,7 +35,6 @@ object NotificationScheduler {
         price: Double,
         currency: String
     ) {
-        // Целевое время: nextPaymentDate минус N дней, в 10:00 утра
         val cal = Calendar.getInstance().apply {
             timeInMillis = nextPaymentDate
             add(Calendar.DAY_OF_YEAR, -daysBefore)
@@ -51,7 +47,6 @@ object NotificationScheduler {
         val now = System.currentTimeMillis()
         val delay = targetTime - now
 
-        // Если уже прошло — не планируем
         if (delay <= 0) return
 
         val data = workDataOf(

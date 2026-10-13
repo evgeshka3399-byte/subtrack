@@ -31,7 +31,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// 50 пословиц и поговорок про экономию и деньги
 private val SAVINGS_QUOTES = listOf(
     "Копейка рубль бережёт",
     "Деньги любят счёт",
@@ -85,17 +84,28 @@ private val SAVINGS_QUOTES = listOf(
     "Тот, кто следит за подписками, следит за будущим"
 )
 
-// Альтернативные надписи, если отмен пока нет
 private val START_SAVING_MESSAGES = listOf(
     "Готов начать экономить? Отмени первую подписку!",
-    "Твоя первая отмена запустит счётчик экономии!",
-    "Отмени лишнее — и увидишь, как растёт экономия",
-    "Первый шаг к экономии — отмена ненужной подписки",
-    "С чего начнём? Отмени что-нибудь лишнее!",
-    "Пока пусто. Отмени подписку — и начнётся магия",
-    "Тут появится твоя первая пословица — после первой отмены",
     "Экономия начинается с одной отмены. Сделай её сейчас!"
 )
+
+private data class SavingsLevel(
+    val name: String,
+    val emoji: String,
+    val minCount: Int,
+    val description: String
+)
+
+private val LEVELS = listOf(
+    SavingsLevel("Новичок", "🌱", 0, "Только начинаешь"),
+    SavingsLevel("Экономный", "💡", 1, "Первая отмена"),
+    SavingsLevel("Уверенный", "⚡", 3, "3 подписки отменено"),
+    SavingsLevel("Мастер", "🏆", 5, "5 подписок отменено"),
+    SavingsLevel("Гуру экономии", "👑", 10, "10 подписок отменено")
+)
+
+fun getCurrentLevel(count: Int): SavingsLevel =
+    LEVELS.lastOrNull { count >= it.minCount } ?: LEVELS.first()
 
 @Composable
 fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
@@ -108,37 +118,32 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
     val yearlySaved = monthlySaved * 12
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
 
-    // Пословица показывается только если есть отмены
     val quote = remember(count) {
         if (count == 0) null
         else SAVINGS_QUOTES[(count - 1) % SAVINGS_QUOTES.size]
     }
 
-    // Надпись-призыв показывается, если отмен нет
     val startMessage = remember(count) {
-        if (count > 0) null
-        else START_SAVING_MESSAGES[0]
+        if (count > 0) null else START_SAVING_MESSAGES[0]
     }
 
-    val rainbowBrush = Brush.linearGradient(
+    val currentLevel = getCurrentLevel(count)
+
+    // Нежный пастельный градиент
+    val softGradient = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFE53935),
-            Color(0xFFFB8C00),
-            Color(0xFFFDD835),
-            Color(0xFF43A047),
-            Color(0xFF00ACC1),
-            Color(0xFF2962FF),
-            Color(0xFF8E24AA)
+            Color(0xFFB2DFDB), // нежно-мятный
+            Color(0xFFB3E5FC), // нежно-голубой
+            Color(0xFFD1C4E9)  // нежно-лавандовый
         )
     )
 
-    // Пульсация
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
+        initialValue = 0.75f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200),
+            animation = tween(1800),
             repeatMode = RepeatMode.Reverse
         ),
         label = "alpha"
@@ -149,54 +154,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // === ПОСЛОВИЦА ИЛИ ПРИЗЫВ ===
-        item {
-            when {
-                quote != null -> {
-                    // Радужная пословица
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .alpha(pulseAlpha)
-                            .background(rainbowBrush, RoundedCornerShape(24.dp))
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            quote,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic,
-                            textAlign = TextAlign.Center,
-                            color = Color.White
-                        )
-                    }
-                }
-                startMessage != null -> {
-                    // Надпись-призыв, если отмен нет
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                RoundedCornerShape(24.dp)
-                            )
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            startMessage,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
-        }
-
-        // === СУММА ЭКОНОМИИ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -237,21 +194,157 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === ДОСТИЖЕНИЯ ===
         item {
             Text("Достижения", style = MaterialTheme.typography.titleMedium)
         }
 
-        val achievements = listOf(
-            Achievement("Первая отмена", "Отменить первую подписку", count >= 1),
-            Achievement("5 подписок", "Отменить 5 подписок", count >= 5),
-            Achievement("10 подписок", "Отменить 10 подписок", count >= 10),
-            Achievement("Экономия 1000 ₽", "Сэкономить 1000 ₽", yearlySaved >= 1000),
-            Achievement("Экономия 5000 ₽", "Сэкономить 5000 ₽", yearlySaved >= 5000),
-            Achievement("Экономия 10000 ₽", "Сэкономить 10000 ₽", yearlySaved >= 10000)
+        if (count >= 1) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Первая отмена!",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Отличное начало — ты сделал первый шаг к экономии",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            when {
+                quote != null -> {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .alpha(pulseAlpha)
+                            .background(softGradient, RoundedCornerShape(24.dp))
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            quote,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontStyle = FontStyle.Italic,
+                            textAlign = TextAlign.Center,
+                            color = Color(0xFF2E3A46)
+                        )
+                    }
+                }
+                startMessage != null -> {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(24.dp)
+                            )
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            startMessage,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "Твой уровень",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(currentLevel.emoji, fontSize = 32.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                currentLevel.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                currentLevel.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+
+                    val nextLevel = LEVELS.firstOrNull { it.minCount > count }
+                    if (nextLevel != null) {
+                        val currentMin = currentLevel.minCount
+                        val nextMin = nextLevel.minCount
+                        val progress = ((count - currentMin).toFloat() / (nextMin - currentMin))
+                            .coerceIn(0f, 1f)
+
+                        Text(
+                            "До уровня «${nextLevel.name}»: ${nextMin - count}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text(
+                            "Максимальный уровень достигнут! 🎉",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Text("Вехи", style = MaterialTheme.typography.titleMedium)
+        }
+
+        val milestones = listOf(
+            Achievement("Экономия 1000 ₽", "Сэкономить 1000 ₽ в год", yearlySaved >= 1000),
+            Achievement("Экономия 5000 ₽", "Сэкономить 5000 ₽ в год", yearlySaved >= 5000),
+            Achievement("Экономия 10000 ₽", "Сэкономить 10000 ₽ в год", yearlySaved >= 10000),
+            Achievement("Экономия 50000 ₽", "Сэкономить 50000 ₽ в год", yearlySaved >= 50000)
         )
 
-        items(achievements) { a ->
+        items(milestones) { a ->
             Card(
                 Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
@@ -276,7 +369,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === ИСТОРИЯ ОТМЕН ===
         if (cancelled.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))

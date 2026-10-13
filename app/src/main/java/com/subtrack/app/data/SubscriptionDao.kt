@@ -13,6 +13,9 @@ interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions WHERE isCancelled = 0 ORDER BY nextPaymentDate ASC")
     fun getActiveSubscriptions(): Flow<List<Subscription>>
 
+    @Query("SELECT * FROM subscriptions WHERE isCancelled = 0 ORDER BY nextPaymentDate ASC")
+    suspend fun getActiveOnce(): List<Subscription>
+
     @Query("SELECT * FROM subscriptions WHERE isCancelled = 1 ORDER BY cancelledDate DESC")
     fun getCancelledSubscriptions(): Flow<List<Subscription>>
 

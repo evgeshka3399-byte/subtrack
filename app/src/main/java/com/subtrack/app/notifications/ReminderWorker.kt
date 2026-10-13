@@ -8,13 +8,16 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.subtrack.app.MainActivity
-import com.subtrack.app.R
+import com.subtrack.app.util.formatMoney
 
 class ReminderWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
     override fun doWork(): Result {
         val name = inputData.getString("sub_name") ?: "Подписка"
         val id = inputData.getLong("sub_id", 0)
+        val price = inputData.getDouble("price", 0.0)
+        val currency = inputData.getString("currency") ?: "₽"
+        val daysBefore = inputData.getInt("days_before", 2)
 
         val intent = Intent(applicationContext, MainActivity::class.java)
         val pending = PendingIntent.getActivity(
@@ -22,10 +25,17 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(applicationContext, NotificationScheduler.CHANNEL_ID)
+        val title = "Скоро списание"
+        val text = "Через $daysBefore дн. спишут ${formatMoney(price)} $currency за «$name». Отменить?"
+
+        val notification = NotificationCompat.Builder(
+            applicationContext,
+            NotificationScheduler.CHANNEL_ID
+        )
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Скоро списание")
-            .setContentText("Через 2 дня спишут за «$name». Отменить?")
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pending)
             .setAutoCancel(true)

@@ -40,33 +40,13 @@ fun SubscriptionListScreen(
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
 
     val grouped = subscriptions.groupBy { it.category }
-    val categoryOrder = CategoryColors.categories.filter { grouped.containsKey(it) } +
-            grouped.keys.filter { it !in CategoryColors.categories }
-
-    val expandedState = remember {
-        mutableStateMapOf<String, Boolean>()
-    }
-
-    if (subscriptions.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Нажми «+», чтобы добавить первую",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        return
-    }
+    val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // === ВСЕ КАТЕГОРИИ (даже пустые) ===
         CategoryColors.categories.forEach { category ->
             val items = grouped[category] ?: emptyList()
             val isExpanded = expandedState[category] ?: false
@@ -84,7 +64,6 @@ fun SubscriptionListScreen(
                     isExpanded = isExpanded,
                     onToggle = {
                         if (items.isEmpty()) {
-                            // Если категория пустая — сразу открываем форму
                             onAddInCategory(category)
                         } else {
                             expandedState[category] = !isExpanded
@@ -129,50 +108,47 @@ fun CategoryCard(
         shape = MaterialTheme.shapes.medium,
         color = color.copy(alpha = 0.12f)
     ) {
-        Column {
-            Row(
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { onToggle() }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
                 Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggle() }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    Modifier
-                        .size(14.dp)
-                        .background(color, CircleShape)
+                    .size(14.dp)
+                    .background(color, CircleShape)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    category,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color
                 )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        category,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = color
-                    )
-                    Text(
-                        if (count == 0) "Нет подписок"
-                        else "$count · ${formatMoney(monthlyTotal)} ₽/мес",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (count > 0) {
-                    Icon(
-                        Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.rotate(rotation)
-                    )
-                } else {
-                    Text(
-                        "+",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = color,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { onAddInCategory() }
-                    )
-                }
+                Text(
+                    if (count == 0) "Нет подписок — нажми, чтобы добавить"
+                    else "$count · ${formatMoney(monthlyTotal)} ₽/мес",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (count > 0) {
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.rotate(rotation)
+                )
+            } else {
+                Text(
+                    "+",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = color,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

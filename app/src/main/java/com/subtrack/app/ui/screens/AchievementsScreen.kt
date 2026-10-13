@@ -1,10 +1,5 @@
 package com.subtrack.app.ui.screens
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,8 +11,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -107,7 +100,6 @@ val LEVELS = listOf(
 fun getCurrentLevel(count: Int): SavingsLevel =
     LEVELS.lastOrNull { count >= it.minCount } ?: LEVELS.first()
 
-// Функция для правильного названия порядковой отмены
 fun getOrdinalLabel(count: Int): String {
     return when (count) {
         1 -> "Первая отмена!"
@@ -146,31 +138,12 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
 
     val currentLevel = getCurrentLevel(count)
 
-    val softGradient = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFFB2DFDB),
-            Color(0xFFB3E5FC),
-            Color(0xFFD1C4E9)
-        )
-    )
-
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.75f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
-
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // === ПОСЛОВИЦА + СУММА ЭКОНОМИИ В ОДНОМ БЛОКЕ ===
+        // === ЭКОНОМИЯ + ПОСЛОВИЦА В ОДНОЙ КАРТОЧКЕ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -183,49 +156,30 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                     Modifier.padding(20.dp).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Пословица — просто текст, без выделения
                     when {
                         quote != null -> {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .alpha(pulseAlpha)
-                                    .background(softGradient, RoundedCornerShape(20.dp))
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    quote,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontStyle = FontStyle.Italic,
-                                    textAlign = TextAlign.Center,
-                                    color = Color(0xFF2E3A46)
-                                )
-                            }
-                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                "«$quote»",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                fontStyle = FontStyle.Italic,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                         startMessage != null -> {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        MaterialTheme.colorScheme.surfaceVariant,
-                                        RoundedCornerShape(20.dp)
-                                    )
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    startMessage,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                startMessage,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
+
+                    Spacer(Modifier.height(16.dp))
 
                     Text(
                         "Ты сэкономил",

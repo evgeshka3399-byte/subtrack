@@ -1,17 +1,23 @@
 package com.subtrack.app.ui
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
+import com.subtrack.app.notifications.NotificationScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class SubTrackViewModel(private val repository: SubscriptionRepository) : ViewModel() {
+class SubTrackViewModel(
+    application: Application,
+    private val repository: SubscriptionRepository
+) : AndroidViewModel(application) {
 
     val activeSubscriptions: StateFlow<List<Subscription>> =
         repository.activeSubscriptions.stateIn(
@@ -34,37 +40,69 @@ class SubTrackViewModel(private val repository: SubscriptionRepository) : ViewMo
         )
 
     fun addSubscription(subscription: Subscription) = viewModelScope.launch {
-        repository.add(subscription)
+        val id = repository.add(subscription)
+        scheduleNotification(subscription.copy(id = id))
     }
 
     fun updateSubscription(subscription: Subscription) = viewModelScope.launch {
         repository.update(subscription)
+        NotificationScheduler.cancelReminder(getApplication(), subscription.id)
+        if (!subscription.isCancelled) {
+            scheduleNotification(subscription)
+        }
     }
 
     fun cancelSubscription(subscription: Subscription) = viewModelScope.launch {
-        repository.update(
-            subscription.copy(isCancelled = true, cancelledDate = System.currentTimeMillis())
+        val updated = subscription.copy(
+            isCancelled = true,
+            cancelledDate = System.currentTimeMillis()
         )
+        repository.update(updated)
+        NotificationScheduler.cancelReminder(getApplication(), subscription.id)
     }
 
     fun restoreSubscription(subscription: Subscription) = viewModelScope.launch {
-        repository.update(subscription.copy(isCancelled = false, cancelledDate = null))
+        val updated = subscription.copy(isCancelled = false, cancelledDate = null)
+        repository.update(updated)
+        scheduleNotification(updated)
     }
 
     fun deleteSubscription(subscription: Subscription) = viewModelScope.launch {
         repository.delete(subscription)
+        NotificationScheduler.cancelReminder(getApplication(), subscription.id)
     }
 
     fun clearAll() = viewModelScope.launch {
-        activeSubscriptions.value.forEach { repository.delete(it) }
-        cancelledSubscriptions.value.forEach { repository.delete(it) }
+        activeSubscriptions.value.forEach {
+            NotificationScheduler.cancelReminder(getApplication(), it.id)
+            repository.delete(it)
+        }
+        cancelledSubscriptions.value.forEach {
+            NotificationScheduler.cancelReminder(getApplication(), it.id)
+            repository.delete(it)
+        }
     }
+
+    private fun scheduleNotification(subscription: Subscription) {
+        val context = getApplication<Application>()
+        val daysBefore = SettingsPrefs.getReminderDays(context)
+        NotificationScheduler.scheduleReminder(
+            context = context,
+            subscriptionId = subscription.id,
+            name = subscription.name,
+            nextPaymentDate = subscription.nextPaymentDate,
+            daysBefore = daysBefore,
+            price = subscription.price,
+            currency = subscription.currency
+        )
+    }
+
     companion object {
-        fun Factory(repository: SubscriptionRepository): ViewModelProvider.Factory =
+        fun Factory(application: Application, repository: SubscriptionRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return SubTrackViewModel(repository) as T
+                    return SubTrackViewModel(application, repository) as T
                 }
             }
     }

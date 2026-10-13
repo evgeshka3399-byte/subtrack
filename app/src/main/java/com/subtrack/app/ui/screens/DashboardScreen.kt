@@ -29,7 +29,7 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
+fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
 
@@ -71,7 +71,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // === БЛОКИ ТРАТЫ / ЭКОНОМИЯ ===
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -159,7 +158,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             }
         }
 
-        // === ПЕРЕКЛЮЧАТЕЛЬ ГРАФИКОВ (ПОЛЗУНОК) ===
         if (subscriptions.isNotEmpty()) {
             Column {
                 Text(
@@ -182,7 +180,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 )
                 Row(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     ChartMode.values().forEach { mode ->
                         Text(
@@ -215,7 +213,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
             }
         }
 
-        // === САМ ГРАФИК ===
         if (subscriptions.isEmpty()) {
             Card(
                 Modifier.fillMaxWidth(),
@@ -280,15 +277,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = onShowList,
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text("Показать все подписки")
-            }
         }
     }
 }
@@ -297,6 +285,6 @@ enum class ChartMode(val title: String, val shortTitle: String) {
     PIE("Круговая", "Круг"),
     BAR("Столбчатая", "Столб"),
     LINE("Линейная", "Линия"),
-    AREA("Область", "Область"),
+    AREA("Область", "Обл"),
     HISTOGRAM("Гистограмма", "Гист")
 }

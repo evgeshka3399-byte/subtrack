@@ -89,14 +89,14 @@ private val START_SAVING_MESSAGES = listOf(
     "Экономия начинается с одной отмены. Сделай её сейчас!"
 )
 
-private data class SavingsLevel(
+data class SavingsLevel(
     val name: String,
     val emoji: String,
     val minCount: Int,
     val description: String
 )
 
-private val LEVELS = listOf(
+val LEVELS = listOf(
     SavingsLevel("Новичок", "🌱", 0, "Только начинаешь"),
     SavingsLevel("Экономный", "💡", 1, "Первая отмена"),
     SavingsLevel("Уверенный", "⚡", 3, "3 подписки отменено"),

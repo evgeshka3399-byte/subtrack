@@ -23,6 +23,10 @@ import com.subtrack.app.ui.theme.SubTrackTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ID подписки для перехода на экран отмены
+        val openCancelId = intent?.getLongExtra("open_cancel_id", -1L)?.takeIf { it >= 0 }
+
         setContent {
             var themeKey by remember { mutableStateOf(0) }
             val context = LocalContext.current
@@ -55,7 +59,8 @@ class MainActivity : ComponentActivity() {
                     )
                     MainScreen(
                         viewModel = viewModel,
-                        onThemeChanged = { themeKey++ }
+                        onThemeChanged = { themeKey++ },
+                        openCancelId = openCancelId
                     )
                 }
             }

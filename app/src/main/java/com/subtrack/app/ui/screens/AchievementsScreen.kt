@@ -107,6 +107,23 @@ val LEVELS = listOf(
 fun getCurrentLevel(count: Int): SavingsLevel =
     LEVELS.lastOrNull { count >= it.minCount } ?: LEVELS.first()
 
+// Функция для правильного названия порядковой отмены
+fun getOrdinalLabel(count: Int): String {
+    return when (count) {
+        1 -> "Первая отмена!"
+        2 -> "Вторая отмена!"
+        3 -> "Третья отмена!"
+        4 -> "Четвёртая отмена!"
+        5 -> "Пятая отмена!"
+        6 -> "Шестая отмена!"
+        7 -> "Седьмая отмена!"
+        8 -> "Восьмая отмена!"
+        9 -> "Девятая отмена!"
+        10 -> "Десятая отмена!"
+        else -> "$count отмен!"
+    }
+}
+
 @Composable
 fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
@@ -166,7 +183,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                     Modifier.padding(20.dp).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Пословица СВЕРХУ над "Ты сэкономил"
                     when {
                         quote != null -> {
                             Box(
@@ -211,7 +227,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                         }
                     }
 
-                    // Ты сэкономил
                     Text(
                         "Ты сэкономил",
                         style = MaterialTheme.typography.titleMedium,
@@ -240,7 +255,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === ПОХВАЛА ПЕРВАЯ ОТМЕНА ===
+        // === ДИНАМИЧЕСКАЯ ПОХВАЛА ===
         if (count >= 1) {
             item {
                 Card(
@@ -259,12 +274,19 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                "Первая отмена!",
+                                getOrdinalLabel(count),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "Отличное начало — ты сделал первый шаг к экономии",
+                                when (count) {
+                                    1 -> "Отличное начало — ты сделал первый шаг к экономии"
+                                    2 -> "Уже две! Продолжай в том же духе"
+                                    3 -> "Три подписки долой — ты в ударе"
+                                    4 -> "Четыре! Экономия набирает обороты"
+                                    5 -> "Пять отмен — ты мастер экономии"
+                                    else -> "Отличная работа! Продолжай"
+                                },
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }

@@ -24,6 +24,7 @@ import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.theme.CategoryColors
 import com.subtrack.app.util.daysUntil
 import com.subtrack.app.util.formatMoney
+import com.subtrack.app.util.monthlyEquivalent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,30 +34,31 @@ import java.util.Locale
 fun SubscriptionListScreen(
     viewModel: SubTrackViewModel,
     onEditClick: (Long) -> Unit,
-    onCancelClick: (Long) -> Unit
+    onCancelClick: (Long) -> Unit,
+    onAddInCategory: (String) -> Unit
 ) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
-
-    if (subscriptions.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
-                Text("Нажми «+», чтобы добавить первую",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        return
-    }
 
     val grouped = subscriptions.groupBy { it.category }
     val categoryOrder = CategoryColors.categories.filter { grouped.containsKey(it) } +
             grouped.keys.filter { it !in CategoryColors.categories }
 
     val expandedState = remember {
-        mutableStateMapOf<String, Boolean>().apply {
-            categoryOrder.forEach { put(it, true) }
+        mutableStateMapOf<String, Boolean>()
+    }
+
+    if (subscriptions.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Нажми «+», чтобы добавить первую",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+        return
     }
 
     LazyColumn(
@@ -64,22 +66,35 @@ fun SubscriptionListScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        categoryOrder.forEach { category ->
-            val items = grouped[category] ?: return@forEach
-            val isExpanded = expandedState[category] ?: true
+        // === ВСЕ КАТЕГОРИИ (даже пустые) ===
+        CategoryColors.categories.forEach { category ->
+            val items = grouped[category] ?: emptyList()
+            val isExpanded = expandedState[category] ?: false
             val categoryColor = CategoryColors.colorFor(category)
+            val totalMonthly = items.sumOf {
+                monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
+            }
 
-            item(key = "header_$category") {
-                CategoryHeader(
+            item(key = "category_$category") {
+                CategoryCard(
                     category = category,
                     count = items.size,
+                    monthlyTotal = totalMonthly,
                     color = categoryColor,
                     isExpanded = isExpanded,
-                    onToggle = { expandedState[category] = !isExpanded }
+                    onToggle = {
+                        if (items.isEmpty()) {
+                            // Если категория пустая — сразу открываем форму
+                            onAddInCategory(category)
+                        } else {
+                            expandedState[category] = !isExpanded
+                        }
+                    },
+                    onAddInCategory = { onAddInCategory(category) }
                 )
             }
 
-            if (isExpanded) {
+            if (isExpanded && items.isNotEmpty()) {
                 items(items, key = { it.id }) { sub ->
                     SubscriptionCard(
                         sub = sub,
@@ -95,53 +110,70 @@ fun SubscriptionListScreen(
 }
 
 @Composable
-fun CategoryHeader(
+fun CategoryCard(
     category: String,
     count: Int,
+    monthlyTotal: Double,
     color: androidx.compose.ui.graphics.Color,
     isExpanded: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onAddInCategory: () -> Unit
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 0f else -90f,
         label = "rotation"
     )
+
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle() },
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
         color = color.copy(alpha = 0.12f)
     ) {
-        Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+        Column {
+            Row(
                 Modifier
-                    .size(12.dp)
-                    .background(color, CircleShape)
-            )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                category,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                "$count",
-                style = MaterialTheme.typography.labelLarge,
-                color = color
-            )
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.rotate(rotation)
-            )
+                    .fillMaxWidth()
+                    .clickable { onToggle() }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(14.dp)
+                        .background(color, CircleShape)
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        category,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+                    Text(
+                        if (count == 0) "Нет подписок"
+                        else "$count · ${formatMoney(monthlyTotal)} ₽/мес",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (count > 0) {
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.rotate(rotation)
+                    )
+                } else {
+                    Text(
+                        "+",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = color,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { onAddInCategory() }
+                    )
+                }
+            }
         }
     }
 }

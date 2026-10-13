@@ -13,4 +13,7 @@ class SubscriptionRepository(private val dao: SubscriptionDao) {
     suspend fun update(subscription: Subscription) = dao.update(subscription)
     suspend fun delete(subscription: Subscription) = dao.delete(subscription)
     suspend fun getById(id: Long): Subscription? = dao.getById(id)
+
+    // Одноразовое чтение активных подписок (для планирования уведомлений)
+    suspend fun getActiveOnce(): List<Subscription> = dao.getActiveOnce()
 }

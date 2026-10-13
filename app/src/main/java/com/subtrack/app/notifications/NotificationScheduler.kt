@@ -58,7 +58,7 @@ object NotificationScheduler {
         )
 
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+            .setInitialDelay(30, TimeUnit.SECONDS)
             .setInputData(data)
             .addTag("reminder_$subscriptionId")
             .build()

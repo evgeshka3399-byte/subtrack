@@ -17,7 +17,6 @@ import com.subtrack.app.ui.components.CategoryBreakdown
 import com.subtrack.app.ui.components.ChartSlice
 import com.subtrack.app.ui.components.ForecastMode
 import com.subtrack.app.ui.components.HistogramChart
-import com.subtrack.app.ui.components.LineChart
 import com.subtrack.app.ui.components.PieChart
 import com.subtrack.app.ui.components.buildForecast
 import com.subtrack.app.ui.theme.CategoryColors
@@ -29,7 +28,11 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
+fun DashboardScreen(
+    viewModel: SubTrackViewModel,
+    onShowList: () -> Unit = {},
+    onAddClick: () -> Unit = {}
+) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
 
@@ -158,7 +161,32 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
             }
         }
 
-        if (subscriptions.isNotEmpty()) {
+        if (subscriptions.isEmpty()) {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    Modifier.padding(32.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Нажми «+», чтобы добавить первую",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = onAddClick,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text("Добавить подписку")
+                    }
+                }
+            }
+        } else {
             Column {
                 Text(
                     "График: ${chartMode.title}",
@@ -193,7 +221,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
                 }
             }
 
-            if (chartMode == ChartMode.LINE || chartMode == ChartMode.AREA) {
+            if (chartMode == ChartMode.AREA) {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = forecastMode == ForecastMode.AVERAGE,
@@ -211,27 +239,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
                     }
                 }
             }
-        }
 
-        if (subscriptions.isEmpty()) {
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Column(
-                    Modifier.padding(32.dp).fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Пока нет подписок", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Нажми «+», чтобы добавить первую",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
             Card(
                 Modifier.fillMaxWidth().height(340.dp),
                 shape = MaterialTheme.shapes.large
@@ -240,11 +248,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
                     when (chartMode) {
                         ChartMode.PIE -> PieChart(slices = slices, modifier = Modifier.fillMaxSize())
                         ChartMode.BAR -> BarChart(slices = slices, modifier = Modifier.fillMaxSize())
-                        ChartMode.LINE -> LineChart(
-                            points = forecast,
-                            lineColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
-                        )
                         ChartMode.AREA -> AreaChart(
                             points = forecast,
                             lineColor = MaterialTheme.colorScheme.primary,
@@ -261,7 +264,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
             if (chartMode == ChartMode.PIE || chartMode == ChartMode.BAR) {
                 Text("По категориям", style = MaterialTheme.typography.titleMedium)
                 CategoryBreakdown(slices)
-            } else if (chartMode == ChartMode.LINE || chartMode == ChartMode.AREA) {
+            } else if (chartMode == ChartMode.AREA) {
                 Text(
                     if (forecastMode == ForecastMode.AVERAGE)
                         "Среднемесячная нагрузка. Все годовые платежи усреднены по 12 месяцам."
@@ -284,7 +287,6 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit = {}) {
 enum class ChartMode(val title: String, val shortTitle: String) {
     PIE("Круговая", "Круг"),
     BAR("Столбчатая", "Столб"),
-    LINE("Линейная", "Линия"),
-    AREA("Область", "Обл"),
-    HISTOGRAM("Гистограмма", "Гист")
+    AREA("Область", "Область"),
+    HISTOGRAM("Гистограмма", "Гистограмма")
 }

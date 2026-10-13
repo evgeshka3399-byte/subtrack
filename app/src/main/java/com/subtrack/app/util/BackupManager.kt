@@ -10,7 +10,7 @@ object BackupManager {
 
     fun exportToJson(subscriptions: List<Subscription>): String {
         val root = JSONObject()
-        root.put("version", 1)
+        root.put("version", 2)
         root.put("exported_at", System.currentTimeMillis())
 
         val arr = JSONArray()
@@ -41,20 +41,31 @@ object BackupManager {
         val root = JSONObject(json)
         val arr = root.getJSONArray("subscriptions")
         val result = mutableListOf<Subscription>()
+        val now = System.currentTimeMillis()
 
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
+
+            // === ЧТЕНИЕ ДАТ С ПРОВЕРКОЙ ===
+            val firstPayment = if (obj.has("firstPaymentDate"))
+                obj.getLong("firstPaymentDate") else now
+
+            val nextPayment = if (obj.has("nextPaymentDate"))
+                obj.getLong("nextPaymentDate")
+            else
+                calculateNextPaymentDate(firstPayment, obj.optString("cycle", "MONTHLY"), 30)
+
             result.add(
                 Subscription(
-                    id = 0, // новый id присвоит Room
+                    id = 0,
                     name = obj.optString("name", "Без названия"),
                     price = obj.optDouble("price", 0.0),
                     currency = obj.optString("currency", "₽"),
                     category = obj.optString("category", "Другое"),
                     cycle = obj.optString("cycle", "MONTHLY"),
                     customCycleDays = obj.optInt("customCycleDays", 30),
-                    firstPaymentDate = obj.optLong("firstPaymentDate", System.currentTimeMillis()),
-                    nextPaymentDate = obj.optLong("nextPaymentDate", System.currentTimeMillis()),
+                    firstPaymentDate = firstPayment,
+                    nextPaymentDate = nextPayment,
                     hasTrial = obj.optBoolean("hasTrial", false),
                     trialEndDate = if (obj.isNull("trialEndDate")) null else obj.optLong("trialEndDate"),
                     priceAfterTrial = if (obj.isNull("priceAfterTrial")) null else obj.optDouble("priceAfterTrial"),

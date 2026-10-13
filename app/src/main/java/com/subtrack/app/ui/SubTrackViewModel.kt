@@ -55,6 +55,10 @@ class SubTrackViewModel(private val repository: SubscriptionRepository) : ViewMo
         repository.delete(subscription)
     }
 
+    fun clearAll() = viewModelScope.launch {
+        activeSubscriptions.value.forEach { repository.delete(it) }
+        cancelledSubscriptions.value.forEach { repository.delete(it) }
+    }
     companion object {
         fun Factory(repository: SubscriptionRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {

@@ -3,6 +3,8 @@ package com.subtrack.app.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,9 +13,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
-import com.subtrack.app.util.exportToCsv
+import com.subtrack.app.util.BackupManager
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,14 +39,51 @@ fun SettingsScreen(
     onThemeChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var theme by remember { mutableStateOf(SettingsPrefs.getTheme(context)) }
     var reminderDays by remember { mutableStateOf(SettingsPrefs.getReminderDays(context)) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showReminderDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showMessage by remember { mutableStateOf<String?>(null) }
 
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
+
+    // === ЭКСПОРТ ===
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val all = subscriptions + cancelled
+                val json = BackupManager.exportToJson(all)
+                BackupManager.writeToUri(context, uri, json)
+                showMessage = "Экспортировано ${all.size} подписок"
+            } catch (e: Exception) {
+                showMessage = "Ошибка экспорта: ${e.message}"
+            }
+        }
+    }
+
+    // === ИМПОРТ ===
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val json = BackupManager.readFromUri(context, uri)
+                val imported = BackupManager.parseJson(json)
+                scope.launch {
+                    imported.forEach { viewModel.addSubscription(it) }
+                    showMessage = "Импортировано ${imported.size} подписок"
+                }
+            } catch (e: Exception) {
+                showMessage = "Ошибка импорта: ${e.message}"
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -89,12 +130,18 @@ fun SettingsScreen(
             )
 
             SettingsItem(
-                icon = Icons.Default.Share,
+                icon = Icons.Default.FileDownload,
                 title = "Экспорт данных",
-                subtitle = "Сохранить в CSV (${subscriptions.size + cancelled.size} записей)",
+                subtitle = "Сохранить в файл (${subscriptions.size + cancelled.size} записей)",
+                onClick = { exportLauncher.launch("subtrack_backup.json") }
+            )
+
+            SettingsItem(
+                icon = Icons.Default.FileUpload,
+                title = "Импорт данных",
+                subtitle = "Восстановить из файла",
                 onClick = {
-                    val csv = exportToCsv(subscriptions + cancelled)
-                    shareCsv(context, csv)
+                    importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
                 }
             )
 
@@ -204,6 +251,17 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showMessage != null) {
+        AlertDialog(
+            onDismissRequest = { showMessage = null },
+            title = { Text("Готово") },
+            text = { Text(showMessage!!) },
+            confirmButton = {
+                TextButton(onClick = { showMessage = null }) { Text("ОК") }
+            }
+        )
+    }
 }
 
 @Composable
@@ -250,15 +308,6 @@ fun ThemeOption(
         RadioButton(selected = current == value, onClick = { onSelect(value) })
         Text(label)
     }
-}
-
-private fun shareCsv(context: Context, csv: String) {
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = "text/csv"
-        putExtra(Intent.EXTRA_SUBJECT, "SubTrack Export")
-        putExtra(Intent.EXTRA_TEXT, csv)
-    }
-    context.startActivity(Intent.createChooser(intent, "Сохранить CSV"))
 }
 
 private fun sendFeedback(context: Context) {

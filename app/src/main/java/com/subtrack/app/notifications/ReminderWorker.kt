@@ -8,7 +8,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.subtrack.app.MainActivity
+import com.subtrack.app.SubTrackApp
 import com.subtrack.app.util.formatMoney
+import kotlinx.coroutines.runBlocking
 
 class ReminderWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
@@ -18,6 +20,21 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
         val price = inputData.getDouble("price", 0.0)
         val currency = inputData.getString("currency") ?: "₽"
         val daysBefore = inputData.getInt("days_before", 2)
+
+        // === ПРОВЕРКА: подписка существует и НЕ отменена ===
+        val app = applicationContext as? SubTrackApp ?: return Result.failure()
+        val subscription = runBlocking {
+            try {
+                app.repository.getById(id)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        // Если подписки нет — не показываем
+        if (subscription == null) return Result.success()
+        // Если отменена — не показываем
+        if (subscription.isCancelled) return Result.success()
 
         val intent = Intent(applicationContext, MainActivity::class.java)
         val pending = PendingIntent.getActivity(

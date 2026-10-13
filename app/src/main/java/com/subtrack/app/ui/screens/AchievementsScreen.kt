@@ -1,6 +1,9 @@
 package com.subtrack.app.ui.screens
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -28,7 +31,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Пословицы про экономию
+// 50 пословиц и поговорок про экономию и деньги
 private val SAVINGS_QUOTES = listOf(
     "Копейка рубль бережёт",
     "Деньги любят счёт",
@@ -39,7 +42,59 @@ private val SAVINGS_QUOTES = listOf(
     "Скупой платит дважды, а экономный — никогда",
     "Тот, кто экономит, всегда при деньгах",
     "Маленькие траты опустошают кошелёк",
-    "Считай деньги, не отходя от кассы"
+    "Считай деньги, не отходя от кассы",
+    "Без копейки рубля не бывает",
+    "Деньги — как вода: утекут, если не следить",
+    "Экономия — это тоже заработок",
+    "Лучше меньше потратить, чем больше заработать",
+    "Не имей сто рублей, а имей сто друзей — но и рубль береги",
+    "Тратить легко, зарабатывать трудно",
+    "Кто не считает копейки, тот не считает рубли",
+    "Богатство начинается с экономии",
+    "Сэкономленный рубль дороже заработанного",
+    "Дешёвая покупка — не всегда выгодная",
+    "Лишняя подписка — лишняя дыра в кармане",
+    "Платишь за то, чем не пользуешься? Отмени!",
+    "Деньги не растут на дереве — их надо беречь",
+    "Одна отменённая подписка = один сэкономленный ужин",
+    "Тот, кто контролирует траты, контролирует жизнь",
+    "Береги деньги смолоду",
+    "Меньше подписок — больше свободы",
+    "Отмена подписки — маленькая победа над собой",
+    "Кто платит за всё, тот не копит ни на что",
+    "Лучше синица в руках, чем журавль в небе",
+    "Не всё то золото, что блестит в рекламе",
+    "Деньги — плохой хозяин, но хороший слуга",
+    "Подписка — это не свобода, а ежемесячная клетка",
+    "Одна копейка — и та бережётся",
+    "Богатый не тот, кто много имеет, а тот, кто мало тратит",
+    "Экономия — мать богатства",
+    "Считай — не считай, а платить придётся. Лучше не платить",
+    "Не трать, пока не заработал",
+    "Деньги уходят тихо, если за ними не следить",
+    "Отменил — сэкономил — победил",
+    "Хочешь жить спокойно — отмени лишнее",
+    "Каждая отмена — шаг к финансовой свободе",
+    "Кто считает подписки, тот считает деньги",
+    "Траты — как песок: утекают сквозь пальцы",
+    "Один клик — и деньги остаются с тобой",
+    "Умей тратить — умей и экономить",
+    "Деньги — это не цель, но без них никуда",
+    "Не подписывайся на то, чем не пользуешься",
+    "Меньше трат — больше возможностей",
+    "Тот, кто следит за подписками, следит за будущим"
+)
+
+// Альтернативные надписи, если отмен пока нет
+private val START_SAVING_MESSAGES = listOf(
+    "Готов начать экономить? Отмени первую подписку!",
+    "Твоя первая отмена запустит счётчик экономии!",
+    "Отмени лишнее — и увидишь, как растёт экономия",
+    "Первый шаг к экономии — отмена ненужной подписки",
+    "С чего начнём? Отмени что-нибудь лишнее!",
+    "Пока пусто. Отмени подписку — и начнётся магия",
+    "Тут появится твоя первая пословица — после первой отмены",
+    "Экономия начинается с одной отмены. Сделай её сейчас!"
 )
 
 @Composable
@@ -53,32 +108,38 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
     val yearlySaved = monthlySaved * 12
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
 
-    // Пословица зависит от количества отмен — стабильна до следующей отмены
+    // Пословица показывается только если есть отмены
     val quote = remember(count) {
         if (count == 0) null
         else SAVINGS_QUOTES[(count - 1) % SAVINGS_QUOTES.size]
     }
 
+    // Надпись-призыв показывается, если отмен нет
+    val startMessage = remember(count) {
+        if (count > 0) null
+        else START_SAVING_MESSAGES[0]
+    }
+
     val rainbowBrush = Brush.linearGradient(
         colors = listOf(
-            Color(0xFFE53935), // красный
-            Color(0xFFFB8C00), // оранжевый
-            Color(0xFFFDD835), // жёлтый
-            Color(0xFF43A047), // зелёный
-            Color(0xFF00ACC1), // голубой
-            Color(0xFF2962FF), // синий
-            Color(0xFF8E24AA)  // фиолетовый
+            Color(0xFFE53935),
+            Color(0xFFFB8C00),
+            Color(0xFFFDD835),
+            Color(0xFF43A047),
+            Color(0xFF00ACC1),
+            Color(0xFF2962FF),
+            Color(0xFF8E24AA)
         )
     )
 
-    // Мигание пословицы
+    // Пульсация
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
         targetValue = 1f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+        animationSpec = infiniteRepeatable(
             animation = tween(1200),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+            repeatMode = RepeatMode.Reverse
         ),
         label = "alpha"
     )
@@ -88,25 +149,49 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // === ПОСЛОВИЦА ===
-        if (quote != null) {
-            item {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .alpha(pulseAlpha)
-                        .background(rainbowBrush, RoundedCornerShape(24.dp))
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        quote,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontStyle = FontStyle.Italic,
-                        textAlign = TextAlign.Center,
-                        color = Color.White
-                    )
+        // === ПОСЛОВИЦА ИЛИ ПРИЗЫВ ===
+        item {
+            when {
+                quote != null -> {
+                    // Радужная пословица
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .alpha(pulseAlpha)
+                            .background(rainbowBrush, RoundedCornerShape(24.dp))
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            quote,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontStyle = FontStyle.Italic,
+                            textAlign = TextAlign.Center,
+                            color = Color.White
+                        )
+                    }
+                }
+                startMessage != null -> {
+                    // Надпись-призыв, если отмен нет
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(24.dp)
+                            )
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            startMessage,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
             }
         }
@@ -160,8 +245,10 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         val achievements = listOf(
             Achievement("Первая отмена", "Отменить первую подписку", count >= 1),
             Achievement("5 подписок", "Отменить 5 подписок", count >= 5),
+            Achievement("10 подписок", "Отменить 10 подписок", count >= 10),
             Achievement("Экономия 1000 ₽", "Сэкономить 1000 ₽", yearlySaved >= 1000),
-            Achievement("Экономия 5000 ₽", "Сэкономить 5000 ₽", yearlySaved >= 5000)
+            Achievement("Экономия 5000 ₽", "Сэкономить 5000 ₽", yearlySaved >= 5000),
+            Achievement("Экономия 10000 ₽", "Сэкономить 10000 ₽", yearlySaved >= 10000)
         )
 
         items(achievements) { a ->

@@ -21,7 +21,11 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
+fun MainScreen(
+    viewModel: SubTrackViewModel,
+    onThemeChanged: () -> Unit = {},
+    openCancelId: Long? = null
+) {
     val context = LocalContext.current
     var showOnboarding by remember { mutableStateOf(!OnboardingPrefs.hasSeenOnboarding(context)) }
 
@@ -37,6 +41,13 @@ fun MainScreen(viewModel: SubTrackViewModel, onThemeChanged: () -> Unit = {}) {
     val tabs = listOf("Аналитика", "Подписки", "Достижения")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val scope = rememberCoroutineScope()
+
+    // Если открыто из уведомления — сразу на экран отмены
+    LaunchedEffect(openCancelId) {
+        if (openCancelId != null && openCancelId >= 0) {
+            navController.navigate("cancel/$openCancelId")
+        }
+    }
 
     Scaffold(
         topBar = {

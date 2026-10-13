@@ -58,7 +58,7 @@ object NotificationScheduler {
         )
 
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-            .setInitialDelay(30, TimeUnit.SECONDS)
+            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .setInputData(data)
             .addTag("reminder_$subscriptionId")
             .build()
@@ -72,6 +72,8 @@ object NotificationScheduler {
     }
 
     fun cancelReminder(context: Context, subscriptionId: Long) {
+        // Отменяем и по имени, и по тегу — для надёжности
         WorkManager.getInstance(context).cancelUniqueWork("reminder_$subscriptionId")
+        WorkManager.getInstance(context).cancelAllWorkByTag("reminder_$subscriptionId")
     }
 }

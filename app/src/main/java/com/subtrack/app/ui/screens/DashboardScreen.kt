@@ -11,10 +11,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subtrack.app.ui.SubTrackViewModel
+import com.subtrack.app.ui.components.AreaChart
 import com.subtrack.app.ui.components.BarChart
 import com.subtrack.app.ui.components.CategoryBreakdown
 import com.subtrack.app.ui.components.ChartSlice
 import com.subtrack.app.ui.components.ForecastMode
+import com.subtrack.app.ui.components.HistogramChart
 import com.subtrack.app.ui.components.LineChart
 import com.subtrack.app.ui.components.PieChart
 import com.subtrack.app.ui.components.buildForecast
@@ -23,6 +25,7 @@ import com.subtrack.app.util.calculateMonthlyTotal
 import com.subtrack.app.util.calculateYearlyTotal
 import com.subtrack.app.util.formatMoney
 import com.subtrack.app.util.monthlyEquivalent
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,11 +33,9 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
 
-    // ТРАТЫ
     val monthlySpent = calculateMonthlyTotal(subscriptions)
     val yearlySpent = calculateYearlyTotal(subscriptions)
 
-    // ЭКОНОМИЯ — сумма отменённых, приведённая к месяцу/году
     val monthlySaved = cancelled.sumOf {
         monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
     }
@@ -194,8 +195,7 @@ fun DashboardScreen(viewModel: SubTrackViewModel, onShowList: () -> Unit) {
                 }
             }
 
-            // Переключатель «Среднее / По факту» — только для графика «Линия»
-            if (chartMode == ChartMode.LINE) {
+            if (chartMode == ChartMode.LINE || chartMode == ChartMode.AREA) {
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = forecastMode == ForecastMode.AVERAGE,

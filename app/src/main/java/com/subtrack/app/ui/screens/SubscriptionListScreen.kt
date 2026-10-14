@@ -52,8 +52,9 @@ fun SubscriptionListScreen(
         .sorted()
     val categoryOrder = filledCategories + emptyCategories
 
-    // === ДИАЛОГИ ЛИМИТОВ ===
+    // === ДИАЛОГИ ===
     var showSubscriptionLimitDialog by remember { mutableStateOf(false) }
+    var showCancellationLimitDialog by remember { mutableStateOf(false) }
     var pendingCategory by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
@@ -109,7 +110,7 @@ fun SubscriptionListScreen(
                             if (viewModel.canCancelSubscription()) {
                                 onCancelClick(sub.id)
                             } else {
-                                showSubscriptionLimitDialog = true // TODO: заменить на CancellationLimitDialog
+                                showCancellationLimitDialog = true
                             }
                         },
                         onDelete = { viewModel.deleteSubscription(sub) }
@@ -130,7 +131,6 @@ fun SubscriptionListScreen(
             onWatchAd = {
                 showSubscriptionLimitDialog = false
                 viewModel.addBonusSlotForAd()
-                // После бонуса — можно добавить подписку
                 val cat = pendingCategory
                 pendingCategory = null
                 if (cat != null) {
@@ -140,6 +140,19 @@ fun SubscriptionListScreen(
             onDismiss = {
                 showSubscriptionLimitDialog = false
                 pendingCategory = null
+            }
+        )
+    }
+
+    // === ДИАЛОГ ЛИМИТА ОТМЕН ===
+    if (showCancellationLimitDialog) {
+        CancellationLimitDialog(
+            onBuyPremium = {
+                showCancellationLimitDialog = false
+                onBuyPremium()
+            },
+            onDismiss = {
+                showCancellationLimitDialog = false
             }
         )
     }

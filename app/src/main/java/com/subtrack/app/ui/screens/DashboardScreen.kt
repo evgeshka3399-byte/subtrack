@@ -7,9 +7,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.components.AreaChart
 import com.subtrack.app.ui.components.BarChart
@@ -31,10 +33,14 @@ import kotlin.math.roundToInt
 fun DashboardScreen(
     viewModel: SubTrackViewModel,
     onShowList: () -> Unit = {},
-    onAddClick: () -> Unit = {}
+    onAddClick: () -> Unit = {},
+    onBuyPremium: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
+
+    val isPremium = viewModel.isPremium()
 
     val monthlySpent = calculateMonthlyTotal(subscriptions)
     val yearlySpent = calculateYearlyTotal(subscriptions)
@@ -47,6 +53,15 @@ fun DashboardScreen(
     var chartMode by remember { mutableStateOf(ChartMode.MONTHLY) }
     var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
     var sliderPosition by remember { mutableStateOf(0f) }
+
+    // Список доступных графиков
+    val availableCharts = remember(isPremium) {
+        if (isPremium) ChartMode.values().toList()
+        else ChartMode.values().filter { it != ChartMode.AREA }
+    }
+
+    // Прогноз: 6 месяцев для Demo, 24 для Premium
+    val forecastMonths = if (isPremium) 24 else 6
 
     val slices = remember(subscriptions) {
         subscriptions.groupBy { it.category }
@@ -62,9 +77,9 @@ fun DashboardScreen(
             .sortedByDescending { it.value }
     }
 
-    val forecast = remember(subscriptions, forecastMode) {
+    val forecast = remember(subscriptions, forecastMode, forecastMonths) {
         if (subscriptions.isEmpty()) emptyList()
-        else buildForecast(subscriptions, 24, forecastMode)
+        else buildForecast(subscriptions, forecastMonths, forecastMode)
     }
 
     Column(
@@ -198,19 +213,18 @@ fun DashboardScreen(
                     value = sliderPosition,
                     onValueChange = {
                         sliderPosition = it
-                        chartMode = ChartMode.values()[
-                            it.roundToInt().coerceIn(0, ChartMode.values().size - 1)
-                        ]
+                        val index = it.roundToInt().coerceIn(0, availableCharts.size - 1)
+                        chartMode = availableCharts[index]
                     },
-                    valueRange = 0f..(ChartMode.values().size - 1).toFloat(),
-                    steps = ChartMode.values().size - 2,
+                    valueRange = 0f..(availableCharts.size - 1).toFloat(),
+                    steps = (availableCharts.size - 2).coerceAtLeast(0),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    ChartMode.values().forEach { mode ->
+                    availableCharts.forEach { mode ->
                         Text(
                             mode.shortTitle,
                             style = MaterialTheme.typography.labelSmall,
@@ -273,6 +287,36 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            // Подсказка про Premium (если не куплен)
+            if (!isPremium) {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "В Premium доступно больше",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "График «Область» и прогноз на 24 месяца — только в Premium.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = onBuyPremium) {
+                            Text("Подробнее →")
+                        }
+                    }
+                }
             }
         }
     }

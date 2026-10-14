@@ -42,7 +42,6 @@ fun MainScreen(
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val scope = rememberCoroutineScope()
 
-    // Если открыто из уведомления — сразу на экран отмены
     LaunchedEffect(openCancelId) {
         if (openCancelId != null && openCancelId >= 0) {
             navController.navigate("cancel/$openCancelId")
@@ -125,7 +124,8 @@ fun MainScreen(
                         onCancelClick = { id -> navController.navigate("cancel/$id") },
                         onAddInCategory = { category ->
                             navController.navigate("add_in_category/$category")
-                        }
+                        },
+                        onBuyPremium = { navController.navigate("premium") }
                     )
                     2 -> AchievementsScreen(viewModel, onBack = {})
                 }

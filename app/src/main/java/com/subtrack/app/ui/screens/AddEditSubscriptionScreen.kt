@@ -48,9 +48,9 @@ fun AddEditSubscriptionScreen(
     var price by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(preselectedCategory ?: "Другое") }
     var cycle by remember { mutableStateOf("MONTHLY") }
-    // Показываем nextPaymentDate (следующее списание), а не firstPaymentDate
     var nextPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
     var originalNextPayment by remember { mutableStateOf<Long?>(null) }
+    var originalFirstPayment by remember { mutableStateOf<Long?>(null) }
     var originalCycle by remember { mutableStateOf("MONTHLY") }
     var hasTrial by remember { mutableStateOf(false) }
     var trialDays by remember { mutableStateOf("7") }
@@ -82,6 +82,7 @@ fun AddEditSubscriptionScreen(
                 cycle = sub.cycle
                 nextPaymentDate = sub.nextPaymentDate
                 originalNextPayment = sub.nextPaymentDate
+                originalFirstPayment = sub.firstPaymentDate
                 originalCycle = sub.cycle
                 hasTrial = sub.hasTrial
                 trialPrice = sub.priceAfterTrial?.toString() ?: ""
@@ -207,7 +208,6 @@ fun AddEditSubscriptionScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // === ДАТА СЛЕДУЮЩЕГО СПИСАНИЯ (было "Дата первого списания") ===
                 OutlinedTextField(
                     value = dateFormat.format(Date(nextPaymentDate)),
                     onValueChange = {},
@@ -237,6 +237,7 @@ fun AddEditSubscriptionScreen(
                     "Книги и обучение" to "Книги и обучение",
                     "Софт и сервисы" to "Софт и сервисы",
                     "Здоровье и спорт" to "Здоровье и спорт",
+                    "Связь" to "Связь",
                     "Другое" to "Другое"
                 )) {
                     category = it
@@ -274,13 +275,11 @@ fun AddEditSubscriptionScreen(
                         val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
                         val trialDaysValue = trialDays.toIntOrNull() ?: 7
 
-                        // Если редактируем и дата/цикл не менялись — сохраняем оригинальные значения
                         val finalNext = if (editId != null &&
                             originalNextPayment == nextPaymentDate &&
                             originalCycle == cycle) {
                             originalNextPayment!!
                         } else {
-                            // Если пользователь поменял дату/цикл — пересчитываем
                             if (nextPaymentDate > System.currentTimeMillis()) {
                                 nextPaymentDate
                             } else {
@@ -301,8 +300,8 @@ fun AddEditSubscriptionScreen(
                             category = category,
                             cycle = cycle,
                             customCycleDays = 30,
-                            firstPaymentDate = if (editId != null && originalNextPayment != null) {
-                                originalNextPayment!!
+                            firstPaymentDate = if (editId != null && originalFirstPayment != null) {
+                                originalFirstPayment!!
                             } else {
                                 nextPaymentDate
                             },

@@ -116,7 +116,8 @@ fun MainScreen(
                         onShowList = {
                             scope.launch { pagerState.animateScrollToPage(1) }
                         },
-                        onAddClick = { navController.navigate("add") }
+                        onAddClick = { navController.navigate("add") },
+                        onBuyPremium = { navController.navigate("premium") }
                     )
                     1 -> SubscriptionListScreen(
                         viewModel = viewModel,

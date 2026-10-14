@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,19 +24,25 @@ data class SavingsLevel(
     val name: String,
     val emoji: String,
     val minCount: Int,
-    val description: String
+    val description: String,
+    val isPremium: Boolean = false
 )
 
-val LEVELS = listOf(
+val ALL_LEVELS = listOf(
     SavingsLevel("Новичок", "🌱", 0, "Только начинаешь"),
     SavingsLevel("Экономный", "💡", 1, "Первая отмена"),
-    SavingsLevel("Уверенный", "⚡", 3, "3 подписки отменено"),
-    SavingsLevel("Мастер", "🏆", 5, "5 подписок отменено"),
-    SavingsLevel("Гуру экономии", "👑", 10, "10 подписок отменено")
+    SavingsLevel("Уверенный", "⚡", 3, "3 подписки отменено", isPremium = true),
+    SavingsLevel("Мастер", "🏆", 5, "5 подписок отменено", isPremium = true),
+    SavingsLevel("Гуру экономии", "👑", 10, "10 подписок отменено", isPremium = true)
 )
 
-fun getCurrentLevel(count: Int): SavingsLevel =
-    LEVELS.lastOrNull { count >= it.minCount } ?: LEVELS.first()
+fun getAvailableLevels(isPremium: Boolean): List<SavingsLevel> =
+    if (isPremium) ALL_LEVELS else ALL_LEVELS.filter { !it.isPremium }
+
+fun getCurrentLevel(count: Int, isPremium: Boolean): SavingsLevel {
+    val available = getAvailableLevels(isPremium)
+    return available.lastOrNull { count >= it.minCount } ?: available.first()
+}
 
 fun getOrdinalLabel(count: Int): String {
     return when (count) {
@@ -54,9 +61,14 @@ fun getOrdinalLabel(count: Int): String {
 }
 
 @Composable
-fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
+fun AchievementsScreen(
+    viewModel: SubTrackViewModel,
+    onBack: () -> Unit = {},
+    onBuyPremium: () -> Unit = {}
+) {
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
     val count by viewModel.cancelledCount.collectAsState()
+    val isPremium = viewModel.isPremium()
 
     val monthlySaved = cancelled.sumOf {
         monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
@@ -64,7 +76,8 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
     val yearlySaved = monthlySaved * 12
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
 
-    val currentLevel = getCurrentLevel(count)
+    val currentLevel = getCurrentLevel(count, isPremium)
+    val availableLevels = getAvailableLevels(isPremium)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -112,7 +125,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === ДИНАМИЧЕСКАЯ ПОХВАЛА ===
+        // === ПОХВАЛА ===
         if (count >= 1) {
             item {
                 Card(
@@ -152,7 +165,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
             }
         }
 
-        // === УРОВЕНЬ ===
+        // === ТЕКУЩИЙ УРОВЕНЬ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -184,7 +197,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                     }
                     Spacer(Modifier.height(12.dp))
 
-                    val nextLevel = LEVELS.firstOrNull { it.minCount > count }
+                    val nextLevel = availableLevels.firstOrNull { it.minCount > count }
                     if (nextLevel != null) {
                         val currentMin = currentLevel.minCount
                         val nextMin = nextLevel.minCount
@@ -203,10 +216,99 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                         )
                     } else {
                         Text(
-                            "Максимальный уровень достигнут! 🎉",
+                            if (isPremium) "Максимальный уровень достигнут! 🎉"
+                            else "Хочешь больше уровней? Купи Premium!",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
+                    }
+                }
+            }
+        }
+
+        // === ВСЕ УРОВНИ (если Premium — все, если Demo — с замком на премиум-уровнях) ===
+        item {
+            Text("Все уровни", style = MaterialTheme.typography.titleMedium)
+        }
+
+        items(ALL_LEVELS) { level ->
+            val isUnlocked = !level.isPremium || isPremium
+            val isAchieved = count >= level.minCount
+
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isUnlocked && isAchieved)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    Modifier.padding(16.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (isUnlocked) level.emoji else "🔒",
+                        fontSize = 28.sp
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            level.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            level.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (!isUnlocked) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (isAchieved) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        // === CTA для Demo ===
+        if (!isPremium) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "Открой все 5 уровней",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Уровни «Уверенный», «Мастер» и «Гуру экономии» доступны в Premium.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = onBuyPremium) {
+                            Text("Купить Premium →")
+                        }
                     }
                 }
             }

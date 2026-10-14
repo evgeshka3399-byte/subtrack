@@ -1,20 +1,15 @@
 package com.subtrack.app.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subtrack.app.ui.SubTrackViewModel
@@ -23,64 +18,6 @@ import com.subtrack.app.util.monthlyEquivalent
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private val SAVINGS_QUOTES = listOf(
-    "Копейка рубль бережёт",
-    "Деньги любят счёт",
-    "Сэкономил — значит заработал",
-    "Не тот богат, кто много получает, а тот, кто мало тратит",
-    "Бережливость — лучшее богатство",
-    "Умный тратит, мудрый экономит",
-    "Скупой платит дважды, а экономный — никогда",
-    "Тот, кто экономит, всегда при деньгах",
-    "Маленькие траты опустошают кошелёк",
-    "Считай деньги, не отходя от кассы",
-    "Без копейки рубля не бывает",
-    "Деньги — как вода: утекут, если не следить",
-    "Экономия — это тоже заработок",
-    "Лучше меньше потратить, чем больше заработать",
-    "Не имей сто рублей, а имей сто друзей — но и рубль береги",
-    "Тратить легко, зарабатывать трудно",
-    "Кто не считает копейки, тот не считает рубли",
-    "Богатство начинается с экономии",
-    "Сэкономленный рубль дороже заработанного",
-    "Дешёвая покупка — не всегда выгодная",
-    "Лишняя подписка — лишняя дыра в кармане",
-    "Платишь за то, чем не пользуешься? Отмени!",
-    "Деньги не растут на дереве — их надо беречь",
-    "Одна отменённая подписка = один сэкономленный ужин",
-    "Тот, кто контролирует траты, контролирует жизнь",
-    "Береги деньги смолоду",
-    "Меньше подписок — больше свободы",
-    "Отмена подписки — маленькая победа над собой",
-    "Кто платит за всё, тот не копит ни на что",
-    "Лучше синица в руках, чем журавль в небе",
-    "Не всё то золото, что блестит в рекламе",
-    "Деньги — плохой хозяин, но хороший слуга",
-    "Подписка — это не свобода, а ежемесячная клетка",
-    "Одна копейка — и та бережётся",
-    "Богатый не тот, кто много имеет, а тот, кто мало тратит",
-    "Экономия — мать богатства",
-    "Считай — не считай, а платить придётся. Лучше не платить",
-    "Не трать, пока не заработал",
-    "Деньги уходят тихо, если за ними не следить",
-    "Отменил — сэкономил — победил",
-    "Хочешь жить спокойно — отмени лишнее",
-    "Каждая отмена — шаг к финансовой свободе",
-    "Кто считает подписки, тот считает деньги",
-    "Траты — как песок: утекают сквозь пальцы",
-    "Один клик — и деньги остаются с тобой",
-    "Умей тратить — умей и экономить",
-    "Деньги — это не цель, но без них никуда",
-    "Не подписывайся на то, чем не пользуешься",
-    "Меньше трат — больше возможностей",
-    "Тот, кто следит за подписками, следит за будущим"
-)
-
-private val START_SAVING_MESSAGES = listOf(
-    "Готов начать экономить? Отмени первую подписку!",
-    "Экономия начинается с одной отмены. Сделай её сейчас!"
-)
 
 data class SavingsLevel(
     val name: String,
@@ -127,15 +64,6 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
     val yearlySaved = monthlySaved * 12
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
 
-    val quote = remember(count) {
-        if (count == 0) null
-        else SAVINGS_QUOTES[(count - 1) % SAVINGS_QUOTES.size]
-    }
-
-    val startMessage = remember(count) {
-        if (count > 0) null else START_SAVING_MESSAGES[0]
-    }
-
     val currentLevel = getCurrentLevel(count)
 
     LazyColumn(
@@ -143,7 +71,7 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // === ЭКОНОМИЯ + ПОСЛОВИЦА В ОДНОЙ КАРТОЧКЕ ===
+        // === СУММА ЭКОНОМИИ ===
         item {
             Card(
                 Modifier.fillMaxWidth(),
@@ -153,34 +81,9 @@ fun AchievementsScreen(viewModel: SubTrackViewModel, onBack: () -> Unit = {}) {
                 )
             ) {
                 Column(
-                    Modifier.padding(20.dp).fillMaxWidth(),
+                    Modifier.padding(24.dp).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Пословица — просто текст, без выделения
-                    when {
-                        quote != null -> {
-                            Text(
-                                "«$quote»",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                fontStyle = FontStyle.Italic,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                        startMessage != null -> {
-                            Text(
-                                startMessage,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
                     Text(
                         "Ты сэкономил",
                         style = MaterialTheme.typography.titleMedium,

@@ -1,14 +1,19 @@
 package com.subtrack.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
@@ -19,12 +24,13 @@ fun CancelScreen(viewModel: SubTrackViewModel, id: Long?, onDone: () -> Unit) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val sub = subscriptions.find { it.id == id }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var showSuccessDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Отмена подписки") },
+                title = { Text("Сменить тариф") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
@@ -56,14 +62,34 @@ fun CancelScreen(viewModel: SubTrackViewModel, id: Long?, onDone: () -> Unit) {
                 )
 
                 Divider()
-                Text("Как отменить:", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Как сменить тариф:",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
 
                 val instructions = getCancelInstructions(sub.name)
-                instructions.forEachIndexed { index, step ->
+                instructions.steps.forEachIndexed { index, step ->
                     Text(
                         "${index + 1}. $step",
                         style = MaterialTheme.typography.bodyMedium
                     )
+                }
+
+                if (instructions.link != null) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(instructions.link))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Icon(Icons.Default.OpenInNew, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Открыть тарифы")
+                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -74,9 +100,10 @@ fun CancelScreen(viewModel: SubTrackViewModel, id: Long?, onDone: () -> Unit) {
                             showSuccessDialog = true
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Text("Я отменил — добавить в сэкономленное")
+                    Text("Я сменил тариф — добавить в сэкономленное")
                 }
             }
         }
@@ -117,244 +144,158 @@ fun CancelScreen(viewModel: SubTrackViewModel, id: Long?, onDone: () -> Unit) {
     }
 }
 
-fun getCancelInstructions(name: String): List<String> {
+data class ChangeTariffInstructions(
+    val steps: List<String>,
+    val link: String?
+)
+
+fun getCancelInstructions(name: String): ChangeTariffInstructions {
     val lower = name.lowercase().replace(" ", "").replace("-", "")
 
     fun has(vararg keys: String) = keys.any { it in lower }
 
     return when {
         // === МУЛЬТИПОДПИСКИ ===
-        has("яндекс", "yandex", "плюс", "plus") -> listOf(
-            "Открой plus.yandex.ru в браузере",
-            "Войди в Яндекс ID",
-            "Управление подпиской → Отменить",
-            "Подтверди отмену"
+        has("яндекс", "yandex", "плюс", "plus") -> ChangeTariffInstructions(
+            listOf(
+                "Открой plus.yandex.ru в браузере",
+                "Войди в Яндекс ID",
+                "Управление подпиской → Сменить тариф",
+                "Подтверди изменение"
+            ),
+            "https://plus.yandex.ru"
         )
-        has("сбер", "sber", "сберпрайм", "sberprime") -> listOf(
-            "Открой СберБанк Онлайн",
-            "Раздел «СберПрайм» в главном меню",
-            "Нажми «Управление подпиской» → «Отключить»",
-            "Подтверди отмену"
+        has("сбер", "sber", "сберпрайм", "sberprime") -> ChangeTariffInstructions(
+            listOf(
+                "Открой СберБанк Онлайн",
+                "Раздел «СберПрайм» в главном меню",
+                "Нажми «Управление подпиской» → «Сменить тариф»",
+                "Подтверди изменение"
+            ),
+            "https://www.sberbank.ru/ru/person/sberprime"
         )
-        has("мтс", "mts", "premium") -> listOf(
-            "Открой приложение «МТС» или личный кабинет mts.ru",
-            "Раздел «Услуги» → «МТС Premium»",
-            "Нажми «Отключить»",
-            "Подтверди"
+        has("мтс", "mts", "premium") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение «МТС» или личный кабинет mts.ru",
+                "Раздел «Услуги» → «МТС Premium»",
+                "Нажми «Сменить тариф»",
+                "Подтверди"
+            ),
+            "https://www.mts.ru/tariffs"
         )
-        has("ozon", "озон") -> listOf(
-            "Открой OZON.ru или приложение",
-            "Профиль → Ozon Premium",
-            "Нажми «Отменить подписку»",
-            "Подтверди"
+        has("ozon", "озон") -> ChangeTariffInstructions(
+            listOf(
+                "Открой OZON.ru или приложение",
+                "Профиль → Ozon Premium",
+                "Нажми «Сменить тариф»",
+                "Подтверди"
+            ),
+            "https://www.ozon.ru/ozon-premium/"
         )
-        has("тинькофф", "tinkoff", "тбанк", "tbank", "pro") -> listOf(
-            "Открой приложение Т-Банк",
-            "Раздел «Т-Банк Pro»",
-            "Настройки подписки → Отключить",
-            "Подтверди"
+        has("тинькофф", "tinkoff", "тбанк", "tbank", "pro") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение Т-Банк",
+                "Раздел «Т-Банк Pro»",
+                "Настройки подписки → Сменить тариф",
+                "Подтверди"
+            ),
+            "https://www.tbank.ru/tinkoff-pro/"
         )
-        has("альфа", "alfa", "смарт") -> listOf(
-            "Открой приложение Альфа-Банк",
-            "Раздел «Альфа-Смарт»",
-            "Управление → Отключить",
-            "Подтверди"
+
+        // === СВЯЗЬ (ОПЕРАТОРЫ) ===
+        has("мтс", "mts") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение «МТС» или личный кабинет mts.ru",
+                "Раздел «Тарифы»",
+                "Выбери новый тариф",
+                "Нажми «Сменить тариф»"
+            ),
+            "https://www.mts.ru/tariffs"
         )
-        has("втб", "vtb") -> listOf(
-            "Открой приложение ВТБ",
-            "Раздел «ВТБ Плюс»",
-            "Отключить подписку",
-            "Подтверди"
+        has("мегафон", "megafon") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение «МегаФон» или личный кабинет megafon.ru",
+                "Раздел «Тарифы»",
+                "Выбери новый тариф",
+                "Нажми «Сменить тариф»"
+            ),
+            "https://moscow.megafon.ru/tariffs/"
         )
-        has("wb", "вайлдберриз", "wildberries", "клуб") -> listOf(
-            "Открой приложение Wildberries",
-            "Профиль → WB Клуб",
-            "Отменить подписку",
-            "Подтверди"
+        has("билайн", "beeline") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение «Билайн» или личный кабинет beeline.ru",
+                "Раздел «Тарифы»",
+                "Выбери новый тариф",
+                "Нажми «Сменить тариф»"
+            ),
+            "https://spb.beeline.ru/customers/products/mobile/tariffs/"
         )
-        has("газпром", "gazprom", "бонус") -> listOf(
-            "Открой приложение «Газпром Бонус»",
-            "Профиль → Управление подпиской",
-            "Отключить",
-            "Подтверди"
+        has("т2", "t2", "tele2", "теле2") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение Т2 или личный кабинет t2.ru",
+                "Раздел «Тарифы»",
+                "Выбери новый тариф",
+                "Нажми «Сменить тариф»"
+            ),
+            "https://t2.ru/tariffs"
+        )
+        has("yota", "йота") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение Yota",
+                "Раздел «Настроить тариф»",
+                "Выбери параметры",
+                "Нажми «Сохранить»"
+            ),
+            "https://www.yota.ru/voice"
+        )
+        has("сбермобайл", "sbermobile") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение СберМобайл",
+                "Раздел «Тарифы»",
+                "Выбери новый тариф",
+                "Нажми «Сменить тариф»"
+            ),
+            "https://sbermobile.ru/tariffs/"
+        )
+        has("тинькофф", "tinkoff", "тбанк", "tbank") -> ChangeTariffInstructions(
+            listOf(
+                "Открой приложение Т-Банк",
+                "Раздел «Мобильная связь»",
+                "Выбери новый тариф",
+                "Нажми «Сменить тариф»"
+            ),
+            "https://www.tbank.ru/mobile/"
         )
 
         // === КИНО И ТВ ===
-        has("netflix", "нетфликс") -> listOf(
-            "Открой netflix.com в браузере",
-            "Войди в аккаунт",
-            "Профиль → Аккаунт → Отменить подписку",
-            "Подтверди отмену"
+        has("netflix", "нетфликс") -> ChangeTariffInstructions(
+            listOf(
+                "Открой netflix.com в браузере",
+                "Войди в аккаунт",
+                "Профиль → Аккаунт → Сменить тариф",
+                "Подтверди"
+            ),
+            "https://www.netflix.com/youraccount"
         )
-        has("кинопоиск", "kinopoisk") -> listOf(
-            "Открой kinopoisk.ru",
-            "Войди в аккаунт",
-            "Профиль → Плюс → Отменить",
-            "Подтверди"
-        )
-        has("иви", "ivi") -> listOf(
-            "Открой ivi.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("okko", "окко") -> listOf(
-            "Открой okko.tv",
-            "Войди в аккаунт",
-            "Профиль → Мои подписки → Отменить",
-            "Подтверди"
-        )
-        has("wink", "винк") -> listOf(
-            "Открой wink.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("premier", "премьер") -> listOf(
-            "Открой premier.one",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("start", "старт") -> listOf(
-            "Открой start.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("more", "море") -> listOf(
-            "Открой more.tv",
-            "Войди в аккаунт",
-            "Профиль → Отменить подписку",
-            "Подтверди"
-        )
-        has("amediateka", "амедиатека") -> listOf(
-            "Открой amediateka.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-
-        // === МУЗЫКА ===
-        has("vk", "вк", "вконтакте") -> listOf(
-            "Открой vk.com или приложение VK",
-            "Настройки → Платежи и подписки",
-            "Найди VK Музыка → Отменить",
-            "Подтверди"
-        )
-        has("spotify", "спотифай") -> listOf(
-            "Открой spotify.com/account",
-            "Войди в аккаунт",
-            "План → Отменить Premium",
-            "Подтверди"
-        )
-        has("звук", "zvuk") -> listOf(
-            "Открой zvuk.com",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("youtube", "ютуб") -> listOf(
-            "Открой youtube.com/premium",
-            "Войди в аккаунт",
-            "Управление подпиской → Отменить",
-            "Подтверди"
-        )
-
-        // === КНИГИ И ОБУЧЕНИЕ ===
-        has("литрес", "litres") -> listOf(
-            "Открой litres.ru",
-            "Войди в аккаунт",
-            "Профиль → Мои подписки → Отменить",
-            "Подтверди"
-        )
-        has("mybook", "майбук") -> listOf(
-            "Открой mybook.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("skyeng", "скинг") -> listOf(
-            "Открой skyeng.ru или приложение",
-            "Профиль → Подписка",
-            "Отменить автопродление",
-            "Подтверди"
-        )
-        has("учи", "uchi") -> listOf(
-            "Открой uchi.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-
-        // === СОФТ И СЕРВИСЫ ===
-        has("kaspersky", "касперский") -> listOf(
-            "Открой my.kaspersky.com",
-            "Войди в аккаунт",
-            "Подписки → Отменить автопродление",
-            "Подтверди"
-        )
-        has("облако", "cloud", "mail") -> listOf(
-            "Открой cloud.mail.ru",
-            "Войди в аккаунт",
-            "Настройки → Подписка → Отменить",
-            "Подтверди"
-        )
-        has("chatgpt", "openai", "чатгпт") -> listOf(
-            "Открой chat.openai.com",
-            "Войди в аккаунт",
-            "Settings → Subscription → Cancel",
-            "Подтверди"
-        )
-        has("nordvpn", "nord") -> listOf(
-            "Открой nordaccount.com",
-            "Войди в аккаунт",
-            "Billing → Cancel subscription",
-            "Подтверди"
-        )
-        has("expressvpn", "express") -> listOf(
-            "Открой expressvpn.com",
-            "Войди в аккаунт",
-            "Subscription → Cancel",
-            "Подтверди"
-        )
-
-        // === ЗДОРОВЬЕ И СПОРТ ===
-        has("fitmost", "фитмост") -> listOf(
-            "Открой fitmost.ru",
-            "Войди в аккаунт",
-            "Профиль → Подписка → Отменить",
-            "Подтверди"
-        )
-
-        // === APPLE / GOOGLE ===
-        has("apple", "эпл", "айтюнс", "itunes", "icloud") -> listOf(
-            "Настройки iPhone → Твой Apple ID",
-            "Подписки",
-            "Выбери подписку → Отменить",
-            "Подтверди"
-        )
-        has("google", "гугл", "play") -> listOf(
-            "Открой play.google.com/store/account/subscriptions",
-            "Найди подписку",
-            "Отменить подписку",
-            "Подтверди"
-        )
-
-        // === ОПЕРАТОРЫ СВЯЗИ ===
-        has("megafon", "мегафон", "beeline", "билайн", "tele2", "теле2") -> listOf(
-            "Открой приложение оператора",
-            "Раздел «Услуги» или «Подписки»",
-            "Найди ненужную подписку",
-            "Отключи"
+        has("кинопоиск", "kinopoisk") -> ChangeTariffInstructions(
+            listOf(
+                "Открой kinopoisk.ru",
+                "Войди в аккаунт",
+                "Профиль → Плюс → Сменить тариф",
+                "Подтверди"
+            ),
+            "https://www.kinopoisk.ru/plus/"
         )
 
         // === ЗАГЛУШКА ===
-        else -> listOf(
-            "Зайди в личный кабинет сервиса",
-            "Найди раздел «Подписка» или «Оплата»",
-            "Нажми «Отменить»",
-            "Подтверди отмену"
+        else -> ChangeTariffInstructions(
+            listOf(
+                "Зайди в личный кабинет сервиса",
+                "Найди раздел «Тариф» или «Подписка»",
+                "Нажми «Сменить тариф»",
+                "Подтверди изменение"
+            ),
+            null
         )
     }
 }

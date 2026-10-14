@@ -9,6 +9,7 @@ object CategoryColors {
     val Книги = Color(0xFFFB8C00)
     val Софт = Color(0xFF00ACC1)
     val Здоровье = Color(0xFF43A047)
+    val Связь = Color(0xFF00897B)
     val Другое = Color(0xFF757575)
 
     val categories = listOf(
@@ -18,6 +19,7 @@ object CategoryColors {
         "Книги и обучение",
         "Софт и сервисы",
         "Здоровье и спорт",
+        "Связь",
         "Другое"
     )
 
@@ -28,6 +30,7 @@ object CategoryColors {
         "Книги и обучение" -> Книги
         "Софт и сервисы" -> Софт
         "Здоровье и спорт" -> Здоровье
+        "Связь" -> Связь
         else -> Другое
     }
 }

@@ -1,9 +1,5 @@
 package com.subtrack.app.data
 
-/**
- * Справочник популярных подписок в России.
- * Используется для автодополнения названия и автоподбора категории.
- */
 object SubscriptionCatalog {
 
     data class CatalogItem(
@@ -68,15 +64,20 @@ object SubscriptionCatalog {
         CatalogItem("Meditopia", "Здоровье и спорт"),
         CatalogItem("World Class", "Здоровье и спорт"),
 
+        // === СВЯЗЬ ===
+        CatalogItem("МТС", "Связь"),
+        CatalogItem("МегаФон", "Связь"),
+        CatalogItem("Билайн", "Связь"),
+        CatalogItem("Т2 (Tele2)", "Связь"),
+        CatalogItem("Yota", "Связь"),
+        CatalogItem("СберМобайл", "Связь"),
+        CatalogItem("Тинькофф Мобайл", "Связь"),
+
         // === ПРОЧЕЕ ===
         CatalogItem("YouTube Premium", "Кино и ТВ"),
         CatalogItem("Apple TV+", "Кино и ТВ")
     )
 
-    /**
-     * Поиск по введённому тексту. Сначала — совпадения с начала слова,
-     * потом — с любого места.
-     */
     fun search(query: String): List<CatalogItem> {
         if (query.isBlank()) return emptyList()
         val q = query.lowercase().trim()

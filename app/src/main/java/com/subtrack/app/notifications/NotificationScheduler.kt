@@ -45,9 +45,18 @@ object NotificationScheduler {
         }
         val targetTime = cal.timeInMillis
         val now = System.currentTimeMillis()
-        val delay = targetTime - now
+        var delay = targetTime - now
 
-        if (delay <= 0) return
+        // Если целевое время в прошлом, но списание ещё не наступило —
+        // показываем уведомление через 10 секунд
+        if (delay <= 0) {
+            if (nextPaymentDate > now) {
+                delay = 10_000L // 10 секунд
+            } else {
+                // Списание уже прошло — не ставим
+                return
+            }
+        }
 
         val data = workDataOf(
             "sub_id" to subscriptionId,
@@ -72,7 +81,6 @@ object NotificationScheduler {
     }
 
     fun cancelReminder(context: Context, subscriptionId: Long) {
-        // Отменяем и по имени, и по тегу — для надёжности
         WorkManager.getInstance(context).cancelUniqueWork("reminder_$subscriptionId")
         WorkManager.getInstance(context).cancelAllWorkByTag("reminder_$subscriptionId")
     }

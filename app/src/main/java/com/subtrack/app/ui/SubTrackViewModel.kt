@@ -74,6 +74,37 @@ class SubTrackViewModel(
         }
     }
 
+    /**
+     * Смена тарифа. Если новая цена < старой — разница идёт в «Сэкономлено».
+     */
+    fun changeTariff(oldSub: Subscription, newPrice: Double) = viewModelScope.launch {
+        val context = getApplication<Application>()
+        val oldPrice = oldSub.price
+
+        if (newPrice < oldPrice) {
+            val diff = oldPrice - newPrice
+            val savingsRecord = Subscription(
+                id = 0,
+                name = "Смена тарифа: ${oldSub.name}",
+                price = diff,
+                currency = oldSub.currency,
+                category = oldSub.category,
+                cycle = oldSub.cycle,
+                customCycleDays = oldSub.customCycleDays,
+                firstPaymentDate = System.currentTimeMillis(),
+                nextPaymentDate = System.currentTimeMillis(),
+                isCancelled = true,
+                cancelledDate = System.currentTimeMillis(),
+                notes = "Старый тариф: ${"%.0f".format(oldPrice)} ₽, новый: ${"%.0f".format(newPrice)} ₽"
+            )
+            repository.add(savingsRecord)
+        }
+
+        val updated = oldSub.copy(price = newPrice)
+        repository.update(updated)
+        SettingsPrefs.incrementCancellationCount(context)
+    }
+
     fun cancelSubscription(subscription: Subscription) = viewModelScope.launch {
         val context = getApplication<Application>()
         val updated = subscription.copy(
@@ -82,7 +113,6 @@ class SubTrackViewModel(
         )
         repository.update(updated)
         NotificationScheduler.cancelReminder(context, subscription.id)
-        // Увеличиваем счётчик отмен
         SettingsPrefs.incrementCancellationCount(context)
     }
 

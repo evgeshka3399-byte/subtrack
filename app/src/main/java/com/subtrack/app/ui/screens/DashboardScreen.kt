@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
+import com.subtrack.app.ui.components.AdBanner
 import com.subtrack.app.ui.components.AreaChart
 import com.subtrack.app.ui.components.BarChart
 import com.subtrack.app.ui.components.CategoryBreakdown
@@ -54,13 +55,11 @@ fun DashboardScreen(
     var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
     var sliderPosition by remember { mutableStateOf(0f) }
 
-    // Список доступных графиков
     val availableCharts = remember(isPremium) {
         if (isPremium) ChartMode.values().toList()
         else ChartMode.values().filter { it != ChartMode.AREA }
     }
 
-    // Прогноз: 6 месяцев для Demo, 24 для Premium
     val forecastMonths = if (isPremium) 24 else 6
 
     val slices = remember(subscriptions) {
@@ -289,7 +288,11 @@ fun DashboardScreen(
                 )
             }
 
-            // Подсказка про Premium (если не куплен)
+            // === РЕКЛАМА (только для Demo) ===
+            if (!isPremium) {
+                AdBanner()
+            }
+
             if (!isPremium) {
                 Card(
                     Modifier.fillMaxWidth(),
@@ -307,7 +310,7 @@ fun DashboardScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "График «Область» и прогноз на 24 месяца — только в Premium.",
+                            "График «Область», прогноз 24 месяца, без рекламы — всё в Premium.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )

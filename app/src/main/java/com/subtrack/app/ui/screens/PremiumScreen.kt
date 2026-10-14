@@ -59,11 +59,15 @@ fun PremiumScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(32.dp))
 
             val features = listOf(
-                "Без рекламы навсегда",
-                "Безлимит отмен подписок",
-                "Диаграммы и аналитика",
-                "Экспорт данных в CSV",
-                
+                "Безлимит подписок",
+                "Безлимит отмен",
+                "Без рекламы",
+                "4-й график «Область»",
+                "Прогноз на 24 месяца",
+                "Все 5 уровней",
+                "Напоминания за 1/2/3/7 дней",
+                "Экспорт CSV",
+                "Золотая иконка"
             )
 
             features.forEach { feature ->
@@ -86,7 +90,7 @@ fun PremiumScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(32.dp))
 
             Button(
-                onClick = { /* TODO: Интеграция оплаты */ },
+                onClick = { /* TODO: интеграция оплаты */ },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

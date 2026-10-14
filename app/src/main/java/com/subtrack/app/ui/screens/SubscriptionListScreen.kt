@@ -1,6 +1,5 @@
 package com.subtrack.app.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,12 +41,23 @@ fun SubscriptionListScreen(
     val grouped = subscriptions.groupBy { it.category }
     val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
+    // === СОРТИРОВКА КАТЕГОРИЙ ===
+    // Сначала — с подписками (по убыванию количества), потом — пустые (по алфавиту)
+    val allCategories = CategoryColors.categories
+    val filledCategories = allCategories
+        .filter { (grouped[it]?.size ?: 0) > 0 }
+        .sortedByDescending { grouped[it]?.size ?: 0 }
+    val emptyCategories = allCategories
+        .filter { (grouped[it]?.size ?: 0) == 0 }
+        .sorted()
+    val categoryOrder = filledCategories + emptyCategories
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        CategoryColors.categories.forEach { category ->
+        categoryOrder.forEach { category ->
             val items = grouped[category] ?: emptyList()
             val isExpanded = expandedState[category] ?: false
             val categoryColor = CategoryColors.colorFor(category)
@@ -229,7 +239,7 @@ fun SubscriptionCard(
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = color)
                 ) {
-                    Text("Отменить")
+                    Text("Сменить тариф")
                 }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = onDelete) {

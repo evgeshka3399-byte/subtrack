@@ -52,6 +52,7 @@ fun AddEditSubscriptionScreen(
     var originalNextPayment by remember { mutableStateOf<Long?>(null) }
     var originalFirstPayment by remember { mutableStateOf<Long?>(null) }
     var originalCycle by remember { mutableStateOf("MONTHLY") }
+    var originalPrice by remember { mutableStateOf<Double?>(null) }
     var hasTrial by remember { mutableStateOf(false) }
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
@@ -84,6 +85,7 @@ fun AddEditSubscriptionScreen(
                 originalNextPayment = sub.nextPaymentDate
                 originalFirstPayment = sub.firstPaymentDate
                 originalCycle = sub.cycle
+                originalPrice = sub.price
                 hasTrial = sub.hasTrial
                 trialPrice = sub.priceAfterTrial?.toString() ?: ""
                 categoryManuallyChanged = true
@@ -310,9 +312,21 @@ fun AddEditSubscriptionScreen(
                             trialEndDate = trialEndDate,
                             priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
                         )
+
                         scope.launch {
-                            if (editId == null) viewModel.addSubscription(sub)
-                            else viewModel.updateSubscription(sub)
+                            if (editId == null) {
+                                viewModel.addSubscription(sub)
+                            } else {
+                                val old = viewModel.activeSubscriptions.value
+                                    .find { it.id == editId }
+                                // Если категория «Связь» и цена изменилась — смена тарифа
+                                if (old != null && old.category == "Связь" &&
+                                    priceValue != old.price) {
+                                    viewModel.changeTariff(old, priceValue)
+                                } else {
+                                    viewModel.updateSubscription(sub)
+                                }
+                            }
                             onDone()
                         }
                     },

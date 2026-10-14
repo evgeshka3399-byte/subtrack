@@ -7,9 +7,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +43,7 @@ fun MainScreen(
     val tabs = listOf("Аналитика", "Подписки", "Достижения")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
     val scope = rememberCoroutineScope()
+    val isPremium = viewModel.isPremium()
 
     LaunchedEffect(openCancelId) {
         if (openCancelId != null && openCancelId >= 0) {
@@ -52,11 +55,21 @@ fun MainScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "SubTrack",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        if (isPremium) {
+                            Icon(
+                                Icons.Default.Star,
+                                contentDescription = null,
+                                tint = Color(0xFFFFD700)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(
+                            "SubTrack",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 },
                 actions = {
                     IconButton(onClick = { navController.navigate("settings") }) {
@@ -128,7 +141,11 @@ fun MainScreen(
                         },
                         onBuyPremium = { navController.navigate("premium") }
                     )
-                    2 -> AchievementsScreen(viewModel, onBack = {})
+                    2 -> AchievementsScreen(
+                        viewModel = viewModel,
+                        onBack = {},
+                        onBuyPremium = { navController.navigate("premium") }
+                    )
                 }
             }
         }

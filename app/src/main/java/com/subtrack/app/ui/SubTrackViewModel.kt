@@ -39,6 +39,28 @@ class SubTrackViewModel(
             viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0
         )
 
+    fun isPremium(): Boolean = SettingsPrefs.isPremium(getApplication())
+
+    fun canAddSubscription(): Boolean {
+        val context = getApplication<Application>()
+        val activeCount = activeSubscriptions.value.size
+        return SettingsPrefs.canAddSubscription(context, activeCount)
+    }
+
+    fun canCancelSubscription(): Boolean {
+        return SettingsPrefs.canCancelSubscription(getApplication())
+    }
+
+    fun addBonusSlotForAd() {
+        SettingsPrefs.addBonusSlot(getApplication())
+    }
+
+    fun activatePremium() {
+        val context = getApplication<Application>()
+        SettingsPrefs.setPremium(context, true)
+        SettingsPrefs.resetCancellationCount(context)
+    }
+
     fun addSubscription(subscription: Subscription) = viewModelScope.launch {
         val id = repository.add(subscription)
         scheduleNotification(subscription.copy(id = id))
@@ -53,12 +75,15 @@ class SubTrackViewModel(
     }
 
     fun cancelSubscription(subscription: Subscription) = viewModelScope.launch {
+        val context = getApplication<Application>()
         val updated = subscription.copy(
             isCancelled = true,
             cancelledDate = System.currentTimeMillis()
         )
         repository.update(updated)
-        NotificationScheduler.cancelReminder(getApplication(), subscription.id)
+        NotificationScheduler.cancelReminder(context, subscription.id)
+        // Увеличиваем счётчик отмен
+        SettingsPrefs.incrementCancellationCount(context)
     }
 
     fun restoreSubscription(subscription: Subscription) = viewModelScope.launch {
@@ -73,12 +98,13 @@ class SubTrackViewModel(
     }
 
     fun clearAll() = viewModelScope.launch {
+        val context = getApplication<Application>()
         activeSubscriptions.value.forEach {
-            NotificationScheduler.cancelReminder(getApplication(), it.id)
+            NotificationScheduler.cancelReminder(context, it.id)
             repository.delete(it)
         }
         cancelledSubscriptions.value.forEach {
-            NotificationScheduler.cancelReminder(getApplication(), it.id)
+            NotificationScheduler.cancelReminder(context, it.id)
             repository.delete(it)
         }
     }

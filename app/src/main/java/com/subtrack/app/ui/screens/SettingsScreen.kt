@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.util.BackupManager
+import com.subtrack.app.util.exportToCsv
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,6 +41,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val isPremium = viewModel.isPremium()
 
     var theme by remember { mutableStateOf(SettingsPrefs.getTheme(context)) }
     var reminderDays by remember { mutableStateOf(SettingsPrefs.getReminderDays(context)) }
@@ -52,8 +54,8 @@ fun SettingsScreen(
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
 
-    // === ЭКСПОРТ ===
-    val exportLauncher = rememberLauncherForActivityResult(
+    // === ЭКСПОРТ JSON ===
+    val exportJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
         if (uri != null) {
@@ -64,6 +66,24 @@ fun SettingsScreen(
                 showMessage = "Экспортировано ${all.size} подписок"
             } catch (e: Exception) {
                 showMessage = "Ошибка экспорта: ${e.message}"
+            }
+        }
+    }
+
+    // === ЭКСПОРТ CSV (Premium) ===
+    val exportCsvLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val all = subscriptions + cancelled
+                val csv = exportToCsv(all)
+                context.contentResolver.openOutputStream(uri)?.use { stream ->
+                    stream.write(csv.toByteArray(Charsets.UTF_8))
+                }
+                showMessage = "CSV экспортирован (${all.size} записей)"
+            } catch (e: Exception) {
+                showMessage = "Ошибка CSV: ${e.message}"
             }
         }
     }
@@ -79,9 +99,7 @@ fun SettingsScreen(
                 val json = BackupManager.readFromUri(context, uri)
                 val imported = BackupManager.parseJson(json)
                 scope.launch {
-                    if (clearBeforeImport) {
-                        viewModel.clearAll()
-                    }
+                    if (clearBeforeImport) viewModel.clearAll()
                     imported.forEach { viewModel.addSubscription(it) }
                     showMessage = if (clearBeforeImport)
                         "Импортировано ${imported.size} подписок (старые удалены)"
@@ -115,7 +133,7 @@ fun SettingsScreen(
             SettingsItem(
                 icon = Icons.Default.Star,
                 title = "SubTrack Premium",
-                subtitle = "Без рекламы, безлимит отмен",
+                subtitle = if (isPremium) "Активирован ✓" else "Безлимит, без рекламы",
                 onClick = onOpenPremium
             )
             Divider()
@@ -140,10 +158,26 @@ fun SettingsScreen(
 
             SettingsItem(
                 icon = Icons.Default.FileDownload,
-                title = "Экспорт данных",
-                subtitle = "Сохранить в файл (${subscriptions.size + cancelled.size} записей)",
-                onClick = { exportLauncher.launch("subtrack_backup.json") }
+                title = "Экспорт JSON",
+                subtitle = "Полный бэкап (${subscriptions.size + cancelled.size} записей)",
+                onClick = { exportJsonLauncher.launch("subtrack_backup.json") }
             )
+
+            if (isPremium) {
+                SettingsItem(
+                    icon = Icons.Default.FileDownload,
+                    title = "Экспорт CSV",
+                    subtitle = "Таблица для Excel",
+                    onClick = { exportCsvLauncher.launch("subtrack_export.csv") }
+                )
+            } else {
+                SettingsItem(
+                    icon = Icons.Default.Star,
+                    title = "Экспорт CSV",
+                    subtitle = "Доступно только в Premium",
+                    onClick = onOpenPremium
+                )
+            }
 
             SettingsItem(
                 icon = Icons.Default.FileUpload,
@@ -206,7 +240,8 @@ fun SettingsScreen(
             title = { Text("За сколько дней напоминать?") },
             text = {
                 Column {
-                    listOf(1, 2, 3, 7).forEach { d ->
+                    val options = if (isPremium) listOf(1, 2, 3, 7) else listOf(2)
+                    options.forEach { d ->
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -229,6 +264,20 @@ fun SettingsScreen(
                             Text("За $d дн.")
                         }
                     }
+                    if (!isPremium) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Выбор 1/3/7 дней — только в Premium",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(onClick = {
+                            showReminderDialog = false
+                            onOpenPremium()
+                        }) {
+                            Text("Купить Premium →")
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -237,7 +286,6 @@ fun SettingsScreen(
         )
     }
 
-    // === ДИАЛОГ ИМПОРТА ===
     if (showImportDialog) {
         AlertDialog(
             onDismissRequest = { showImportDialog = false },

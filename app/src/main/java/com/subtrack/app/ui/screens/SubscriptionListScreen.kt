@@ -34,15 +34,15 @@ fun SubscriptionListScreen(
     viewModel: SubTrackViewModel,
     onEditClick: (Long) -> Unit,
     onCancelClick: (Long) -> Unit,
-    onAddInCategory: (String) -> Unit
+    onAddInCategory: (String) -> Unit,
+    onBuyPremium: () -> Unit
 ) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
 
     val grouped = subscriptions.groupBy { it.category }
     val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
-    // === СОРТИРОВКА КАТЕГОРИЙ ===
-    // Сначала — с подписками (по убыванию количества), потом — пустые (по алфавиту)
+    // Сортировка: сначала с подписками, потом пустые
     val allCategories = CategoryColors.categories
     val filledCategories = allCategories
         .filter { (grouped[it]?.size ?: 0) > 0 }
@@ -51,6 +51,10 @@ fun SubscriptionListScreen(
         .filter { (grouped[it]?.size ?: 0) == 0 }
         .sorted()
     val categoryOrder = filledCategories + emptyCategories
+
+    // === ДИАЛОГИ ЛИМИТОВ ===
+    var showSubscriptionLimitDialog by remember { mutableStateOf(false) }
+    var pendingCategory by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -74,12 +78,24 @@ fun SubscriptionListScreen(
                     isExpanded = isExpanded,
                     onToggle = {
                         if (items.isEmpty()) {
-                            onAddInCategory(category)
+                            if (viewModel.canAddSubscription()) {
+                                onAddInCategory(category)
+                            } else {
+                                pendingCategory = category
+                                showSubscriptionLimitDialog = true
+                            }
                         } else {
                             expandedState[category] = !isExpanded
                         }
                     },
-                    onAddInCategory = { onAddInCategory(category) }
+                    onAddInCategory = {
+                        if (viewModel.canAddSubscription()) {
+                            onAddInCategory(category)
+                        } else {
+                            pendingCategory = category
+                            showSubscriptionLimitDialog = true
+                        }
+                    }
                 )
             }
 
@@ -89,12 +105,43 @@ fun SubscriptionListScreen(
                         sub = sub,
                         color = categoryColor,
                         onEditClick = onEditClick,
-                        onCancelClick = onCancelClick,
+                        onCancelClick = {
+                            if (viewModel.canCancelSubscription()) {
+                                onCancelClick(sub.id)
+                            } else {
+                                showSubscriptionLimitDialog = true // TODO: заменить на CancellationLimitDialog
+                            }
+                        },
                         onDelete = { viewModel.deleteSubscription(sub) }
                     )
                 }
             }
         }
+    }
+
+    // === ДИАЛОГ ЛИМИТА ПОДПИСОК ===
+    if (showSubscriptionLimitDialog) {
+        SubscriptionLimitDialog(
+            onBuyPremium = {
+                showSubscriptionLimitDialog = false
+                pendingCategory = null
+                onBuyPremium()
+            },
+            onWatchAd = {
+                showSubscriptionLimitDialog = false
+                viewModel.addBonusSlotForAd()
+                // После бонуса — можно добавить подписку
+                val cat = pendingCategory
+                pendingCategory = null
+                if (cat != null) {
+                    onAddInCategory(cat)
+                }
+            },
+            onDismiss = {
+                showSubscriptionLimitDialog = false
+                pendingCategory = null
+            }
+        )
     }
 }
 
@@ -169,7 +216,7 @@ fun SubscriptionCard(
     sub: Subscription,
     color: androidx.compose.ui.graphics.Color,
     onEditClick: (Long) -> Unit,
-    onCancelClick: (Long) -> Unit,
+    onCancelClick: () -> Unit,
     onDelete: () -> Unit
 ) {
     val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
@@ -235,7 +282,7 @@ fun SubscriptionCard(
                     Text("Изменить")
                 }
                 OutlinedButton(
-                    onClick = { onCancelClick(sub.id) },
+                    onClick = onCancelClick,
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = color)
                 ) {

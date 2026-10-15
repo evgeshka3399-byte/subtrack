@@ -92,6 +92,7 @@ fun DashboardScreen(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // === ТРАТЫ ===
             Card(
                 Modifier.weight(1f),
                 shape = MaterialTheme.shapes.large,
@@ -108,7 +109,7 @@ fun DashboardScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "В месяц",
+                        "Средние в месяц",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -120,7 +121,7 @@ fun DashboardScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "В год",
+                        "Средние в год",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -133,6 +134,7 @@ fun DashboardScreen(
                 }
             }
 
+            // === ЭКОНОМИЯ ===
             Card(
                 Modifier.weight(1f),
                 shape = MaterialTheme.shapes.large,
@@ -149,7 +151,7 @@ fun DashboardScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "В месяц",
+                        "Средняя в месяц",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -161,7 +163,7 @@ fun DashboardScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "В год",
+                        "Средняя в год",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -288,7 +290,6 @@ fun DashboardScreen(
                 )
             }
 
-            // === РЕКЛАМА (только для Demo) ===
             if (!isPremium) {
                 AdBanner()
             }

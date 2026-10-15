@@ -226,7 +226,7 @@ fun AchievementsScreen(
             }
         }
 
-        // === ВСЕ УРОВНИ (если Premium — все, если Demo — с замком на премиум-уровнях) ===
+        // === ВСЕ УРОВНИ ===
         item {
             Text("Все уровни", style = MaterialTheme.typography.titleMedium)
         }
@@ -322,6 +322,8 @@ fun AchievementsScreen(
             }
 
             items(cancelled, key = { it.id }) { sub ->
+                val isTariffChange = sub.name.startsWith("Смена тарифа:")
+
                 Card(
                     Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium
@@ -333,25 +335,38 @@ fun AchievementsScreen(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(sub.name, style = MaterialTheme.typography.titleMedium)
-                            if (sub.cancelledDate != null) {
+
+                            if (isTariffChange) {
                                 Text(
-                                    "Отменено: ${dateFormat.format(Date(sub.cancelledDate!!))}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    "Смена тарифа +${formatMoney(sub.price)} ₽",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
                                 )
-                            }
-                            TextButton(onClick = {
-                                viewModel.restoreSubscription(sub)
-                            }) {
-                                Text("Восстановить")
+                            } else {
+                                if (sub.cancelledDate != null) {
+                                    Text(
+                                        "Отменено: ${dateFormat.format(Date(sub.cancelledDate!!))}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                TextButton(onClick = {
+                                    viewModel.restoreSubscription(sub)
+                                }) {
+                                    Text("Восстановить")
+                                }
                             }
                         }
-                        Text(
-                            "+${formatMoney(sub.price)} ₽",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+
+                        if (!isTariffChange) {
+                            Text(
+                                "+${formatMoney(sub.price)} ₽",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }

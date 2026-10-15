@@ -28,7 +28,8 @@ import kotlinx.coroutines.launch
 fun MainScreen(
     viewModel: SubTrackViewModel,
     onThemeChanged: () -> Unit = {},
-    openCancelId: Long? = null
+    openCancelId: Long? = null,
+    openTab: Int? = null
 ) {
     val context = LocalContext.current
     var showOnboarding by remember { mutableStateOf(!OnboardingPrefs.hasSeenOnboarding(context)) }
@@ -47,6 +48,14 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val isPremium = viewModel.isPremium()
 
+    // Переход на вкладку из уведомления
+    LaunchedEffect(openTab) {
+        if (openTab != null && openTab in tabs.indices) {
+            pagerState.animateScrollToPage(openTab)
+        }
+    }
+
+    // Переход на экран отмены из уведомления
     LaunchedEffect(openCancelId) {
         if (openCancelId != null && openCancelId >= 0) {
             navController.navigate("cancel/$openCancelId")

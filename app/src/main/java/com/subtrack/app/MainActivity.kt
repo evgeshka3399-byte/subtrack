@@ -24,8 +24,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ID подписки для перехода на экран отмены
+        // Читаем из Intent: open_cancel_id (экран отмены) или open_tab (номер вкладки)
         val openCancelId = intent?.getLongExtra("open_cancel_id", -1L)?.takeIf { it >= 0 }
+        val openTab = intent?.getIntExtra("open_tab", -1)?.takeIf { it >= 0 }
 
         setContent {
             var themeKey by remember { mutableStateOf(0) }
@@ -60,7 +61,8 @@ class MainActivity : ComponentActivity() {
                     MainScreen(
                         viewModel = viewModel,
                         onThemeChanged = { themeKey++ },
-                        openCancelId = openCancelId
+                        openCancelId = openCancelId,
+                        openTab = openTab
                     )
                 }
             }

@@ -322,7 +322,8 @@ fun AchievementsScreen(
             }
 
             items(cancelled, key = { it.id }) { sub ->
-                val isTariffChange = sub.name.startsWith("Смена тарифа:")
+                val isTariffChange = sub.name.startsWith("Смена тарифа:") ||
+                        sub.name.startsWith("Смена оператора:")
 
                 Card(
                     Modifier.fillMaxWidth(),
@@ -334,15 +335,20 @@ fun AchievementsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(sub.name, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                sub.name,
+                                style = MaterialTheme.typography.titleMedium
+                            )
 
                             if (isTariffChange) {
-                                Text(
-                                    "Смена тарифа +${formatMoney(sub.price)} ₽",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                // Дата смены
+                                if (sub.cancelledDate != null) {
+                                    Text(
+                                        "Дата смены: ${dateFormat.format(Date(sub.cancelledDate!!))}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             } else {
                                 if (sub.cancelledDate != null) {
                                     Text(
@@ -359,7 +365,17 @@ fun AchievementsScreen(
                             }
                         }
 
-                        if (!isTariffChange) {
+                        // Справа показываем разницу только для смен тарифа/оператора (если цена уменьшилась)
+                        if (isTariffChange) {
+                            if (sub.price > 0) {
+                                Text(
+                                    "+${formatMoney(sub.price)} ₽",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
                             Text(
                                 "+${formatMoney(sub.price)} ₽",
                                 style = MaterialTheme.typography.titleMedium,
@@ -369,7 +385,4 @@ fun AchievementsScreen(
                         }
                     }
                 }
-            }
-        }
-    }
-}
+           

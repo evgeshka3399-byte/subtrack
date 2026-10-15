@@ -52,7 +52,8 @@ fun AddEditSubscriptionScreen(
     var originalNextPayment by remember { mutableStateOf<Long?>(null) }
     var originalFirstPayment by remember { mutableStateOf<Long?>(null) }
     var originalCycle by remember { mutableStateOf("MONTHLY") }
-    var originalPrice by remember { mutableStateOf<Double?>(null) }
+    var originalName by remember { mutableStateOf("") }
+    var originalCategory by remember { mutableStateOf("") }
     var hasTrial by remember { mutableStateOf(false) }
     var trialDays by remember { mutableStateOf("7") }
     var trialPrice by remember { mutableStateOf("") }
@@ -85,7 +86,8 @@ fun AddEditSubscriptionScreen(
                 originalNextPayment = sub.nextPaymentDate
                 originalFirstPayment = sub.firstPaymentDate
                 originalCycle = sub.cycle
-                originalPrice = sub.price
+                originalName = sub.name
+                originalCategory = sub.category
                 hasTrial = sub.hasTrial
                 trialPrice = sub.priceAfterTrial?.toString() ?: ""
                 categoryManuallyChanged = true
@@ -319,10 +321,10 @@ fun AddEditSubscriptionScreen(
                             } else {
                                 val old = viewModel.activeSubscriptions.value
                                     .find { it.id == editId }
-                                // Если категория «Связь» и цена изменилась — смена тарифа
+                                // Если категория «Связь» и что-то изменилось — смена тарифа
                                 if (old != null && old.category == "Связь" &&
-                                    priceValue != old.price) {
-                                    viewModel.changeTariff(old, priceValue)
+                                    (priceValue != old.price || name != old.name)) {
+                                    viewModel.changeTariff(old, name, priceValue)
                                 } else {
                                     viewModel.updateSubscription(sub)
                                 }

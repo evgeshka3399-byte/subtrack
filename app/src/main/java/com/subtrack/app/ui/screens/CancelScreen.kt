@@ -31,6 +31,7 @@ fun CancelScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var navigateAfterDialog by remember { mutableStateOf(false) }
 
     val isConnection = sub?.category == "Связь"
 
@@ -105,7 +106,6 @@ fun CancelScreen(
                 Spacer(Modifier.height(16.dp))
 
                 if (isConnection) {
-                    // Для «Связи» — «Я сменил тариф» → открывает редактирование
                     Button(
                         onClick = { onEditClick(sub.id) },
                         modifier = Modifier.fillMaxWidth(),
@@ -114,7 +114,6 @@ fun CancelScreen(
                         Text("Я сменил тариф")
                     }
                 } else {
-                    // Для остальных — «Я отменил — добавить в сэкономленное»
                     Button(
                         onClick = {
                             scope.launch {
@@ -177,7 +176,6 @@ fun getInstructions(name: String, isConnection: Boolean): Instructions {
 
     fun has(vararg keys: String) = keys.any { it in lower }
 
-    // === ДЛЯ СВЯЗИ ===
     if (isConnection) {
         return when {
             has("мтс", "mts") -> Instructions(
@@ -255,7 +253,6 @@ fun getInstructions(name: String, isConnection: Boolean): Instructions {
         }
     }
 
-    // === ДЛЯ ОСТАЛЬНЫХ ===
     return when {
         has("яндекс", "yandex", "плюс", "plus") -> Instructions(
             listOf(

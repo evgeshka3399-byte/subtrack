@@ -54,6 +54,7 @@ fun MainScreen(
         }
     }
 
+    // Открываем экран смены тарифа/отмены конкретной подписки
     LaunchedEffect(openCancelId) {
         if (openCancelId != null && openCancelId >= 0) {
             navController.navigate("cancel/$openCancelId")
@@ -172,7 +173,6 @@ fun MainScreen(
         composable("edit/{id}") { entry ->
             val id = entry.arguments?.getString("id")?.toLongOrNull()
             AddEditSubscriptionScreen(viewModel, id, null) {
-                // Возвращаемся на 2 экрана назад: закрываем и «edit», и «cancel» (если он был)
                 navController.popBackStack("root", inclusive = false)
             }
         }

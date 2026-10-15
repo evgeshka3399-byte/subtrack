@@ -41,10 +41,10 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
         if (daysLeft > daysBefore + 1) return Result.success()
         if (daysLeft < 0) return Result.success()
 
-        // Открываем вкладку «Подписки» (page = 1)
+        // Открываем экран смены тарифа/отмены ИМЕННО этой подписки
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("open_tab", 1) // 1 = вкладка «Подписки»
+            putExtra("open_cancel_id", id)
         }
 
         val pending = PendingIntent.getActivity(

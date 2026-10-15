@@ -54,7 +54,6 @@ fun SettingsScreen(
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
     val cancelled by viewModel.cancelledSubscriptions.collectAsState()
 
-    // === ЭКСПОРТ JSON ===
     val exportJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
@@ -70,7 +69,6 @@ fun SettingsScreen(
         }
     }
 
-    // === ЭКСПОРТ CSV (Premium) ===
     val exportCsvLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("text/csv")
     ) { uri: Uri? ->
@@ -88,7 +86,6 @@ fun SettingsScreen(
         }
     }
 
-    // === ИМПОРТ ===
     var clearBeforeImport by remember { mutableStateOf(false) }
 
     val importLauncher = rememberLauncherForActivityResult(
@@ -198,6 +195,22 @@ fun SettingsScreen(
                 title = "О приложении",
                 subtitle = "SubTrack 1.0",
                 onClick = { showAboutDialog = true }
+            )
+
+            // === ВРЕМЕННАЯ КНОПКА PREMIUM ===
+            Divider()
+            SettingsItem(
+                icon = Icons.Default.Star,
+                title = if (isPremium) "Выключить Premium (тест)" else "Включить Premium (тест)",
+                subtitle = "Временная кнопка для проверки",
+                onClick = {
+                    if (isPremium) {
+                        viewModel.deactivatePremium()
+                    } else {
+                        viewModel.activatePremium()
+                    }
+                    showMessage = if (isPremium) "Premium выключен" else "Premium включён"
+                }
             )
         }
     }

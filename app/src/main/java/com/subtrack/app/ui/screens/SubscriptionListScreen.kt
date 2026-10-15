@@ -42,7 +42,6 @@ fun SubscriptionListScreen(
     val grouped = subscriptions.groupBy { it.category }
     val expandedState = remember { mutableStateMapOf<String, Boolean>() }
 
-    // Сортировка: сначала с подписками, потом пустые
     val allCategories = CategoryColors.categories
     val filledCategories = allCategories
         .filter { (grouped[it]?.size ?: 0) > 0 }
@@ -52,7 +51,6 @@ fun SubscriptionListScreen(
         .sorted()
     val categoryOrder = filledCategories + emptyCategories
 
-    // === ДИАЛОГИ ===
     var showSubscriptionLimitDialog by remember { mutableStateOf(false) }
     var showCancellationLimitDialog by remember { mutableStateOf(false) }
     var pendingCategory by remember { mutableStateOf<String?>(null) }
@@ -120,7 +118,6 @@ fun SubscriptionListScreen(
         }
     }
 
-    // === ДИАЛОГ ЛИМИТА ПОДПИСОК ===
     if (showSubscriptionLimitDialog) {
         SubscriptionLimitDialog(
             onBuyPremium = {
@@ -144,7 +141,6 @@ fun SubscriptionListScreen(
         )
     }
 
-    // === ДИАЛОГ ЛИМИТА ОТМЕН ===
     if (showCancellationLimitDialog) {
         CancellationLimitDialog(
             onBuyPremium = {
@@ -236,6 +232,7 @@ fun SubscriptionCard(
     val daysLeft = daysUntil(sub.nextPaymentDate)
     val isTrialActive = sub.hasTrial && sub.trialEndDate != null &&
             sub.trialEndDate > System.currentTimeMillis()
+    val isConnection = sub.category == "Связь"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -299,7 +296,7 @@ fun SubscriptionCard(
                     shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = color)
                 ) {
-                    Text("Сменить тариф")
+                    Text(if (isConnection) "Сменить тариф" else "Отменить подписку")
                 }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = onDelete) {

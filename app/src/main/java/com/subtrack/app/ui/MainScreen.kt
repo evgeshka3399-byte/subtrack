@@ -168,7 +168,14 @@ fun MainScreen(
         }
         composable("cancel/{id}") { entry ->
             val id = entry.arguments?.getString("id")?.toLongOrNull()
-            CancelScreen(viewModel, id) { navController.popBackStack() }
+            CancelScreen(
+                viewModel = viewModel,
+                id = id,
+                onDone = { navController.popBackStack() },
+                onEditClick = { subId ->
+                    navController.navigate("edit/$subId")
+                }
+            )
         }
         composable("settings") {
             SettingsScreen(

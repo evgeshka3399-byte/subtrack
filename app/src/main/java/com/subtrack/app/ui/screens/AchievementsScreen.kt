@@ -1,404 +1,388 @@
 package com.subtrack.app.ui.screens
 
-import android.app.DatePickerDialog
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.subtrack.app.data.Subscription
-import com.subtrack.app.data.SubscriptionCatalog
+import androidx.compose.ui.unit.sp
 import com.subtrack.app.ui.SubTrackViewModel
-import com.subtrack.app.util.calculateNextPaymentDate
-import kotlinx.coroutines.launch
+import com.subtrack.app.util.formatMoney
+import com.subtrack.app.util.monthlyEquivalent
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
-@Composable
-fun AddEditSubscriptionScreen(
-    viewModel: SubTrackViewModel,
-    editId: Long?,
-    preselectedCategory: String? = null,
-    onDone: () -> Unit
-) {
-    val scope = rememberCoroutineScope()
-    val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-    val dateFormat = remember { SimpleDateFormat("dd.MM.yyyy", Locale("ru")) }
+data class SavingsLevel(
+    val name: String,
+    val emoji: String,
+    val minCount: Int,
+    val description: String,
+    val isPremium: Boolean = false
+)
 
-    var name by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf(preselectedCategory ?: "Другое") }
-    var cycle by remember { mutableStateOf("MONTHLY") }
-    var nextPaymentDate by remember { mutableStateOf(System.currentTimeMillis()) }
-    var originalNextPayment by remember { mutableStateOf<Long?>(null) }
-    var originalFirstPayment by remember { mutableStateOf<Long?>(null) }
-    var originalCycle by remember { mutableStateOf("MONTHLY") }
-    var originalName by remember { mutableStateOf("") }
-    var originalCategory by remember { mutableStateOf("") }
-    var hasTrial by remember { mutableStateOf(false) }
-    var trialDays by remember { mutableStateOf("7") }
-    var trialPrice by remember { mutableStateOf("") }
-    var loaded by remember { mutableStateOf(false) }
-    var categoryManuallyChanged by remember {
-        mutableStateOf(preselectedCategory != null)
-    }
-    var showSuggestions by remember { mutableStateOf(false) }
-    var suggestions by remember { mutableStateOf<List<SubscriptionCatalog.CatalogItem>>(emptyList()) }
-    var showDatePicker by remember { mutableStateOf(false) }
+val ALL_LEVELS = listOf(
+    SavingsLevel("Новичок", "🌱", 0, "Только начинаешь"),
+    SavingsLevel("Экономный", "💡", 1, "Первая отмена"),
+    SavingsLevel("Уверенный", "⚡", 3, "3 подписки отменено", isPremium = true),
+    SavingsLevel("Мастер", "🏆", 5, "5 подписок отменено", isPremium = true),
+    SavingsLevel("Гуру экономии", "👑", 10, "10 подписок отменено", isPremium = true)
+)
 
-    LaunchedEffect(name) {
-        if (name.isNotBlank() && !categoryManuallyChanged) {
-            suggestions = SubscriptionCatalog.search(name)
-            showSuggestions = suggestions.isNotEmpty() &&
-                    !suggestions.any { it.name.equals(name, ignoreCase = true) }
-        } else {
-            showSuggestions = false
-        }
-    }
+fun getAvailableLevels(isPremium: Boolean): List<SavingsLevel> =
+    if (isPremium) ALL_LEVELS else ALL_LEVELS.filter { !it.isPremium }
 
-    LaunchedEffect(editId) {
-        if (editId != null && !loaded) {
-            viewModel.activeSubscriptions.value.find { it.id == editId }?.let { sub ->
-                name = sub.name
-                price = sub.price.toString()
-                category = sub.category
-                cycle = sub.cycle
-                nextPaymentDate = sub.nextPaymentDate
-                originalNextPayment = sub.nextPaymentDate
-                originalFirstPayment = sub.firstPaymentDate
-                originalCycle = sub.cycle
-                originalName = sub.name
-                originalCategory = sub.category
-                hasTrial = sub.hasTrial
-                trialPrice = sub.priceAfterTrial?.toString() ?: ""
-                categoryManuallyChanged = true
-            }
-            loaded = true
-        }
-    }
+fun getCurrentLevel(count: Int, isPremium: Boolean): SavingsLevel {
+    val available = getAvailableLevels(isPremium)
+    return available.lastOrNull { count >= it.minCount } ?: available.first()
+}
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(if (editId == null) "Новая подписка" else "Редактировать") },
-                navigationIcon = {
-                    IconButton(onClick = onDone) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
-                    }
-                }
-            )
-        },
-        contentWindowInsets = WindowInsets.safeDrawing
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .imePadding()
-                .pointerInput(Unit) {
-                    detectTapGestures(onTap = {
-                        focusManager.clearFocus()
-                        showSuggestions = false
-                    })
-                }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Column {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = {
-                            name = it
-                            categoryManuallyChanged = false
-                        },
-                        label = { Text("Название") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (showSuggestions && suggestions.isNotEmpty()) {
-                        Card(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp),
-                            shape = MaterialTheme.shapes.medium,
-                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                        ) {
-                            Column {
-                                suggestions.forEach { item ->
-                                    Row(
-                                        Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                name = item.name
-                                                category = item.category
-                                                categoryManuallyChanged = true
-                                                showSuggestions = false
-                                                focusManager.clearFocus()
-                                            }
-                                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Search,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Spacer(Modifier.width(12.dp))
-                                        Column(Modifier.weight(1f)) {
-                                            Text(item.name, style = MaterialTheme.typography.bodyLarge)
-                                            Text(
-                                                item.category,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                    if (item != suggestions.last()) {
-                                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (category != "Другое") {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            "Категория определена: $category",
-                            modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                    label = { Text("Цена, ₽") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = dateFormat.format(Date(nextPaymentDate)),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Дата следующего списания") },
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.CalendarMonth, contentDescription = "Выбрать дату")
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDatePicker = true }
-                )
-
-                DropdownField("Цикл", cycle, listOf(
-                    "MONTHLY" to "Месяц",
-                    "QUARTERLY" to "3 месяца",
-                    "HALF_YEARLY" to "6 месяцев",
-                    "YEARLY" to "Год"
-                )) { cycle = it }
-
-                DropdownField("Категория", category, listOf(
-                    "Мультиподписки" to "Мультиподписки",
-                    "Кино и ТВ" to "Кино и ТВ",
-                    "Музыка" to "Музыка",
-                    "Книги и обучение" to "Книги и обучение",
-                    "Софт и сервисы" to "Софт и сервисы",
-                    "Здоровье и спорт" to "Здоровье и спорт",
-                    "Связь" to "Связь",
-                    "Другое" to "Другое"
-                )) {
-                    category = it
-                    categoryManuallyChanged = true
-                }
-
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Checkbox(checked = hasTrial, onCheckedChange = { hasTrial = it })
-                    Text("Пробный период")
-                }
-                if (hasTrial) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = trialDays,
-                            onValueChange = { trialDays = it.filter { c -> c.isDigit() } },
-                            label = { Text("Дней") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = trialPrice,
-                            onValueChange = { trialPrice = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
-                            label = { Text("Цена после") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        val priceValue = price.replace(',', '.').toDoubleOrNull() ?: 0.0
-                        val trialDaysValue = trialDays.toIntOrNull() ?: 7
-
-                        val finalNext = if (editId != null &&
-                            originalNextPayment == nextPaymentDate &&
-                            originalCycle == cycle) {
-                            originalNextPayment!!
-                        } else {
-                            if (nextPaymentDate > System.currentTimeMillis()) {
-                                nextPaymentDate
-                            } else {
-                                calculateNextPaymentDate(nextPaymentDate, cycle, 30)
-                            }
-                        }
-
-                        val trialEndDate = if (hasTrial) {
-                            nextPaymentDate + trialDaysValue * 24L * 60 * 60 * 1000
-                        } else {
-                            null
-                        }
-
-                        val sub = Subscription(
-                            id = editId ?: 0,
-                            name = name.ifBlank { "Без названия" },
-                            price = priceValue,
-                            category = category,
-                            cycle = cycle,
-                            customCycleDays = 30,
-                            firstPaymentDate = if (editId != null && originalFirstPayment != null) {
-                                originalFirstPayment!!
-                            } else {
-                                nextPaymentDate
-                            },
-                            nextPaymentDate = finalNext,
-                            hasTrial = hasTrial,
-                            trialEndDate = trialEndDate,
-                            priceAfterTrial = trialPrice.replace(',', '.').toDoubleOrNull()
-                        )
-
-                        scope.launch {
-                            if (editId == null) {
-                                viewModel.addSubscription(sub)
-                            } else {
-                                val old = viewModel.activeSubscriptions.value
-                                    .find { it.id == editId }
-                                // Если категория «Связь» и что-то изменилось — смена тарифа
-                                if (old != null && old.category == "Связь" &&
-                                    (priceValue != old.price || name != old.name)) {
-                                    viewModel.changeTariff(old, name, priceValue)
-                                } else {
-                                    viewModel.updateSubscription(sub)
-                                }
-                            }
-                            onDone()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Сохранить")
-                }
-
-                Spacer(Modifier.height(16.dp))
-            }
-        }
-    }
-
-    if (showDatePicker) {
-        val calendar = Calendar.getInstance().apply { timeInMillis = nextPaymentDate }
-        DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val cal = Calendar.getInstance().apply {
-                    clear()
-                    set(Calendar.YEAR, year)
-                    set(Calendar.MONTH, month)
-                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    set(Calendar.HOUR_OF_DAY, 12)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                nextPaymentDate = cal.timeInMillis
-                showDatePicker = false
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
+fun getOrdinalLabel(count: Int): String {
+    return when (count) {
+        1 -> "Первая отмена!"
+        2 -> "Вторая отмена!"
+        3 -> "Третья отмена!"
+        4 -> "Четвёртая отмена!"
+        5 -> "Пятая отмена!"
+        6 -> "Шестая отмена!"
+        7 -> "Седьмая отмена!"
+        8 -> "Восьмая отмена!"
+        9 -> "Девятая отмена!"
+        10 -> "Десятая отмена!"
+        else -> "$count отмен!"
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropdownField(
-    label: String,
-    value: String,
-    options: List<Pair<String, String>>,
-    onSelect: (String) -> Unit
+fun AchievementsScreen(
+    viewModel: SubTrackViewModel,
+    onBack: () -> Unit = {},
+    onBuyPremium: () -> Unit = {}
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val display = options.find { it.first == value }?.second ?: value
+    val cancelled by viewModel.cancelledSubscriptions.collectAsState()
+    val count by viewModel.cancelledCount.collectAsState()
+    val isPremium = viewModel.isPremium()
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it }
+    val monthlySaved = cancelled.sumOf {
+        monthlyEquivalent(it.price, it.cycle, it.customCycleDays)
+    }
+    val yearlySaved = monthlySaved * 12
+    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
+
+    val currentLevel = getCurrentLevel(count, isPremium)
+    val availableLevels = getAvailableLevels(isPremium)
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        OutlinedTextField(
-            value = display,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(label) },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-            modifier = Modifier.fillMaxWidth().menuAnchor()
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { (key, title) ->
-                DropdownMenuItem(
-                    text = { Text(title) },
-                    onClick = {
-                        onSelect(key)
-                        expanded = false
-                    }
+        // === СУММА ЭКОНОМИИ ===
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
+            ) {
+                Column(
+                    Modifier.padding(24.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Ты сэкономил",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "${formatMoney(yearlySaved)} ₽",
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "в год · ${formatMoney(monthlySaved)} ₽ в месяц",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Отменено подписок: $count",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
+
+        // === ПОХВАЛА ===
+        if (count >= 1) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                getOrdinalLabel(count),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                when (count) {
+                                    1 -> "Отличное начало — ты сделал первый шаг к экономии"
+                                    2 -> "Уже две! Продолжай в том же духе"
+                                    3 -> "Три подписки долой — ты в ударе"
+                                    4 -> "Четыре! Экономия набирает обороты"
+                                    5 -> "Пять отмен — ты мастер экономии"
+                                    else -> "Отличная работа! Продолжай"
+                                },
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // === ТЕКУЩИЙ УРОВЕНЬ ===
+        item {
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "Твой уровень",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(currentLevel.emoji, fontSize = 32.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                currentLevel.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                currentLevel.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+
+                    val nextLevel = availableLevels.firstOrNull { it.minCount > count }
+                    if (nextLevel != null) {
+                        val currentMin = currentLevel.minCount
+                        val nextMin = nextLevel.minCount
+                        val progress = ((count - currentMin).toFloat() / (nextMin - currentMin))
+                            .coerceIn(0f, 1f)
+
+                        Text(
+                            "До уровня «${nextLevel.name}»: ${nextMin - count}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text(
+                            if (isPremium) "Максимальный уровень достигнут! 🎉"
+                            else "Хочешь больше уровней? Купи Premium!",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        // === ВСЕ УРОВНИ ===
+        item {
+            Text("Все уровни", style = MaterialTheme.typography.titleMedium)
+        }
+
+        items(ALL_LEVELS) { level ->
+            val isUnlocked = !level.isPremium || isPremium
+            val isAchieved = count >= level.minCount
+
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isUnlocked && isAchieved)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    Modifier.padding(16.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (isUnlocked) level.emoji else "🔒",
+                        fontSize = 28.sp
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            level.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            level.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (!isUnlocked) {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else if (isAchieved) {
+                        Icon(
+                            Icons.Default.Star,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+
+        // === CTA для Demo ===
+        if (!isPremium) {
+            item {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "Открой все 5 уровней",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Уровни «Уверенный», «Мастер» и «Гуру экономии» доступны в Premium.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = onBuyPremium) {
+                            Text("Купить Premium →")
+                        }
+                    }
+                }
+            }
+        }
+
+        // === ИСТОРИЯ ОТМЕН ===
+        if (cancelled.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Text("История отмен", style = MaterialTheme.typography.titleMedium)
+            }
+
+            items(cancelled, key = { it.id }) { sub ->
+                val isTariffChange = sub.name.startsWith("Смена тарифа:") ||
+                        sub.name.startsWith("Смена оператора:")
+
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        Modifier.padding(16.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                sub.name,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            if (isTariffChange) {
+                                if (sub.cancelledDate != null) {
+                                    Text(
+                                        "Дата смены: ${dateFormat.format(Date(sub.cancelledDate!!))}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                if (sub.cancelledDate != null) {
+                                    Text(
+                                        "Отменено: ${dateFormat.format(Date(sub.cancelledDate!!))}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                TextButton(onClick = {
+                                    viewModel.restoreSubscription(sub)
+                                }) {
+                                    Text("Восстановить")
+                                }
+                            }
+                        }
+
+                        if (isTariffChange) {
+                            if (sub.price > 0) {
+                                Text(
+                                    "+${formatMoney(sub.price)} ₽",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else {
+                            Text(
+                                "+${formatMoney(sub.price)} ₽",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
             }
         }
     }

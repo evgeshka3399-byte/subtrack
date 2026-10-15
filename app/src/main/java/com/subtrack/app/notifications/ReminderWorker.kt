@@ -22,7 +22,6 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
         val currency = inputData.getString("currency") ?: "₽"
         val daysBefore = inputData.getInt("days_before", 2)
 
-        // === ПРОВЕРКА: подписка существует и НЕ отменена ===
         val app = applicationContext as? SubTrackApp ?: return Result.failure()
         val subscription = runBlocking {
             try {
@@ -35,21 +34,17 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
         if (subscription == null) return Result.success()
         if (subscription.isCancelled) return Result.success()
 
-        // === ПРОВЕРКА: до списания действительно <= daysBefore дней ===
         val now = System.currentTimeMillis()
         val diff = subscription.nextPaymentDate - now
         val daysLeft = TimeUnit.MILLISECONDS.toDays(diff)
 
-        // Если до списания больше чем daysBefore + 1 день — не показываем
         if (daysLeft > daysBefore + 1) return Result.success()
-
-        // Если списание уже прошло — не показываем
         if (daysLeft < 0) return Result.success()
 
-        // === Открываем CancelScreen для этой подписки ===
+        // Открываем вкладку «Подписки» (page = 1)
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("open_cancel_id", id)
+            putExtra("open_tab", 1) // 1 = вкладка «Подписки»
         }
 
         val pending = PendingIntent.getActivity(
@@ -60,7 +55,7 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
         )
 
         val title = "Скоро списание"
-        val text = "Через $daysLeft дн. спишут ${formatMoney(price)} $currency за «$name». Отменить?"
+        val text = "Через $daysLeft дн. спишут ${formatMoney(price)} $currency за «$name»."
 
         val notification = NotificationCompat.Builder(
             applicationContext,
@@ -78,7 +73,7 @@ class ReminderWorker(context: Context, params: WorkerParameters) : Worker(contex
         try {
             NotificationManagerCompat.from(applicationContext).notify(id.toInt(), notification)
         } catch (e: SecurityException) {
-            // Нет разрешения POST_NOTIFICATIONS
+            // Нет разрешения
         }
 
         return Result.success()

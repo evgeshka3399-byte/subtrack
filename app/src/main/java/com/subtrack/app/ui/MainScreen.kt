@@ -48,14 +48,12 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val isPremium = viewModel.isPremium()
 
-    // Переход на вкладку из уведомления
     LaunchedEffect(openTab) {
         if (openTab != null && openTab in tabs.indices) {
             pagerState.animateScrollToPage(openTab)
         }
     }
 
-    // Переход на экран отмены из уведомления
     LaunchedEffect(openCancelId) {
         if (openCancelId != null && openCancelId >= 0) {
             navController.navigate("cancel/$openCancelId")
@@ -173,7 +171,10 @@ fun MainScreen(
         }
         composable("edit/{id}") { entry ->
             val id = entry.arguments?.getString("id")?.toLongOrNull()
-            AddEditSubscriptionScreen(viewModel, id, null) { navController.popBackStack() }
+            AddEditSubscriptionScreen(viewModel, id, null) {
+                // Возвращаемся на 2 экрана назад: закрываем и «edit», и «cancel» (если он был)
+                navController.popBackStack("root", inclusive = false)
+            }
         }
         composable("cancel/{id}") { entry ->
             val id = entry.arguments?.getString("id")?.toLongOrNull()

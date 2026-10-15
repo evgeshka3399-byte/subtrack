@@ -61,6 +61,11 @@ class SubTrackViewModel(
         SettingsPrefs.resetCancellationCount(context)
     }
 
+    fun deactivatePremium() {
+        val context = getApplication<Application>()
+        SettingsPrefs.setPremium(context, false)
+    }
+
     fun addSubscription(subscription: Subscription) = viewModelScope.launch {
         val id = repository.add(subscription)
         scheduleNotification(subscription.copy(id = id))
@@ -75,18 +80,35 @@ class SubTrackViewModel(
     }
 
     /**
-     * Смена тарифа. Если новая цена < старой — разница идёт в «Сэкономлено».
+     * Смена тарифа (для категории «Связь»).
+     * @param oldSub старая подписка
+     * @param newName новое название (оператор)
+     * @param newPrice новая цена
      */
-    fun changeTariff(oldSub: Subscription, newPrice: Double) = viewModelScope.launch {
+    fun changeTariff(
+        oldSub: Subscription,
+        newName: String,
+        newPrice: Double
+    ) = viewModelScope.launch {
         val context = getApplication<Application>()
         val oldPrice = oldSub.price
+        val oldName = oldSub.name
+        val nameChanged = oldName != newName
+        val priceDiff = oldPrice - newPrice
 
-        if (newPrice < oldPrice) {
-            val diff = oldPrice - newPrice
+        // Формируем название записи в истории
+        val recordName = if (nameChanged) {
+            "Смена оператора: $oldName → $newName"
+        } else {
+            "Смена тарифа: $oldName"
+        }
+
+        // Если цена стала ниже — записываем разницу
+        if (priceDiff > 0) {
             val savingsRecord = Subscription(
                 id = 0,
-                name = "Смена тарифа: ${oldSub.name}",
-                price = diff,
+                name = recordName,
+                price = priceDiff,
                 currency = oldSub.currency,
                 category = oldSub.category,
                 cycle = oldSub.cycle,
@@ -95,12 +117,30 @@ class SubTrackViewModel(
                 nextPaymentDate = System.currentTimeMillis(),
                 isCancelled = true,
                 cancelledDate = System.currentTimeMillis(),
-                notes = "Старый тариф: ${"%.0f".format(oldPrice)} ₽, новый: ${"%.0f".format(newPrice)} ₽"
+                notes = "Было: ${"%.0f".format(oldPrice)} ₽, стало: ${"%.0f".format(newPrice)} ₽"
             )
             repository.add(savingsRecord)
+        } else if (nameChanged) {
+            // Если название изменилось, но цена выросла — всё равно пишем «Смена оператора» с нулевой разницей
+            val record = Subscription(
+                id = 0,
+                name = recordName,
+                price = 0.0,
+                currency = oldSub.currency,
+                category = oldSub.category,
+                cycle = oldSub.cycle,
+                customCycleDays = oldSub.customCycleDays,
+                firstPaymentDate = System.currentTimeMillis(),
+                nextPaymentDate = System.currentTimeMillis(),
+                isCancelled = true,
+                cancelledDate = System.currentTimeMillis(),
+                notes = "Было: ${"%.0f".format(oldPrice)} ₽, стало: ${"%.0f".format(newPrice)} ₽"
+            )
+            repository.add(record)
         }
 
-        val updated = oldSub.copy(price = newPrice)
+        // Обновляем активную подписку
+        val updated = oldSub.copy(name = newName, price = newPrice)
         repository.update(updated)
         SettingsPrefs.incrementCancellationCount(context)
     }

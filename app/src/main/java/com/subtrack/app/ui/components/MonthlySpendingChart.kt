@@ -49,14 +49,12 @@ fun MonthlySpendingChart(
         return
     }
 
-    // Текущий месяц
     val now = Calendar.getInstance()
     val currentMonth = now.get(Calendar.MONTH)
     val currentYear = now.get(Calendar.YEAR)
     val monthName = MONTH_NAMES_RU[currentMonth]
     val daysInMonth = now.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-    // Собираем списания текущего месяца
     val monthStart = Calendar.getInstance().apply {
         set(Calendar.YEAR, currentYear)
         set(Calendar.MONTH, currentMonth)
@@ -77,7 +75,6 @@ fun MonthlySpendingChart(
         set(Calendar.MILLISECOND, 999)
     }.timeInMillis
 
-    // Список списаний: день → (сумма, список подписок)
     val dailyMap = mutableMapOf<Int, MutableList<Pair<Double, String>>>()
 
     subscriptions.filter { !it.isCancelled }.forEach { sub ->
@@ -129,9 +126,9 @@ fun MonthlySpendingChart(
     )
 
     Column(modifier) {
-        // Заголовок
+        // Заголовок: "Траты в месяц: Октябрь 2026 — 4950 ₽"
         Text(
-            "Траты в месяц: $monthName $currentYear",
+            "Траты в месяц: $monthName $currentYear — ${formatMoney(totalMonth)} ₽",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -139,7 +136,6 @@ fun MonthlySpendingChart(
         Spacer(Modifier.height(8.dp))
 
         Row(Modifier.weight(1f).fillMaxWidth()) {
-            // Ось Y
             Column(
                 Modifier
                     .width(56.dp)
@@ -168,13 +164,11 @@ fun MonthlySpendingChart(
                     val w = size.width
                     val h = size.height
 
-                    // Сетка по Y
                     for (i in 0..2) {
                         val y = h * i / 2f
                         drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 2f)
                     }
 
-                    // Позиции дней по X
                     val points = dailyMap.entries
                         .sortedBy { it.key }
                         .map { (day, list) ->
@@ -184,7 +178,6 @@ fun MonthlySpendingChart(
                             Offset(x, y) to (amount to list.map { it.second })
                         }
 
-                    // Линия
                     if (points.size > 1) {
                         val path = Path().apply {
                             moveTo(points.first().first.x, points.first().first.y)
@@ -193,36 +186,16 @@ fun MonthlySpendingChart(
                         drawPath(path, lineColor, style = Stroke(width = 6f))
                     }
 
-                    // Точки
                     points.forEach { (offset, _) ->
                         drawCircle(lineColor, radius = 12f, center = offset)
                         drawCircle(Color.White, radius = 6f, center = offset)
                     }
-                }
-
-                // Сумма за месяц — по центру
-                Column(
-                    Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        "Всего за месяц",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = labelColor
-                    )
-                    Text(
-                        "${formatMoney(totalMonth)} ₽",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = lineColor
-                    )
                 }
             }
         }
 
         Spacer(Modifier.height(8.dp))
 
-        // Ось X — дни
         Row(
             Modifier.fillMaxWidth().padding(start = 64.dp),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -247,7 +220,6 @@ fun MonthlySpendingChart(
 
         Spacer(Modifier.height(8.dp))
 
-        // Список подписок
         dailyMap.entries.sortedBy { it.key }.forEach { (day, list) ->
             Row(
                 Modifier

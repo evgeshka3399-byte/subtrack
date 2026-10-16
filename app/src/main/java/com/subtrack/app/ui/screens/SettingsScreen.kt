@@ -197,7 +197,6 @@ fun SettingsScreen(
                 onClick = { showAboutDialog = true }
             )
 
-            // === ВРЕМЕННАЯ КНОПКА PREMIUM ===
             Divider()
             SettingsItem(
                 icon = Icons.Default.Star,
@@ -386,6 +385,24 @@ fun SettingsScreen(
                         "Приложение помогает контролировать подписки и экономить деньги. " +
                         "Все данные хранятся только на твоём устройстве. " +
                         "Мы не подключаемся к банку и не передаём информацию третьим лицам."
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    // === ССЫЛКА НА ПОЛИТИКУ КОНФИДЕНЦИАЛЬНОСТИ ===
+                    Text(
+                        "Политика конфиденциальности",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://evgeshka3399-byte.github.io/privacy-policy/")
+                                )
+                                context.startActivity(intent)
+                            }
+                            .padding(vertical = 8.dp)
                     )
                 }
             },

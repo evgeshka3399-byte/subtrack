@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -63,4 +64,13 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Firebase BOM — управляет версиями всех Firebase-библиотек
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+
+    // Firebase Auth — для входа по email и отправки кодов
+    implementation("com.google.firebase:firebase-auth-ktx")
+
+    // Firestore — для хранения покупок
+    implementation("com.google.firebase:firebase-firestore-ktx")
 }

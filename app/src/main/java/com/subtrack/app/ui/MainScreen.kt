@@ -54,7 +54,6 @@ fun MainScreen(
         }
     }
 
-    // Открываем экран смены тарифа/отмены конкретной подписки
     LaunchedEffect(openCancelId) {
         if (openCancelId != null && openCancelId >= 0) {
             navController.navigate("cancel/$openCancelId")
@@ -196,7 +195,13 @@ fun MainScreen(
             )
         }
         composable("premium") {
-            PremiumScreen { navController.popBackStack() }
+            PremiumScreen(
+                onBack = { navController.popBackStack() },
+                onRestoreClick = { navController.navigate("restore_premium") }
+            )
+        }
+        composable("restore_premium") {
+            RestorePremiumScreen(viewModel) { navController.popBackStack() }
         }
     }
 }

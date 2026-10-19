@@ -2,6 +2,7 @@ package com.subtrack.app.data
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -9,25 +10,20 @@ object FirebaseManager {
 
     private const val TAG = "FirebaseManager"
 
-    // Auth — для отправки кодов на email
     private val auth: FirebaseAuth get() = FirebaseAuth.getInstance()
-
-    // Firestore — для хранения покупок
     private val db: FirebaseFirestore get() = FirebaseFirestore.getInstance()
 
     /**
-     * Отправляет код подтверждения на email.
-     * Firebase сам генерирует и отправляет код.
+     * Отправляет письмо для подтверждения почты.
+     * Используем сброс пароля как временный механизм кода.
      */
     suspend fun sendVerificationCode(email: String): Result<Unit> {
         return try {
-            val settings = com.google.firebase.auth.ActionCodeSettings.newBuilder()
-                .setUrl("https://subtrack.app/verify")
-                .setHandleCodeInApp(true)
-                .build()
-            
-            auth.sendSignInLinkToEmail(email, settings).await()
+            auth.sendPasswordResetEmail(email).await()
             Result.success(Unit)
+        } catch (e: FirebaseAuthException) {
+            Log.e(TAG, "Auth error: ${e.errorCode}", e)
+            Result.failure(e)
         } catch (e: Exception) {
             Log.e(TAG, "Error sending code", e)
             Result.failure(e)
@@ -35,27 +31,21 @@ object FirebaseManager {
     }
 
     /**
-     * Проверяет код и восстанавливает Premium.
-     * В реальности здесь нужно проверять код через Firebase.
-     * Для MVP — проверяем, есть ли email в Firestore.
+     * Проверяет, есть ли email в базе Premium.
      */
-    suspend fun restorePremium(email: String): Result<Boolean> {
+    suspend fun checkEmailInPremium(email: String): Result<Boolean> {
         return try {
             val doc = db.collection("premium_users").document(email).get().await()
-            if (doc.exists()) {
-                Result.success(true)
-            } else {
-                Result.success(false)
-            }
+            Result.success(doc.exists())
         } catch (e: Exception) {
-            Log.e(TAG, "Error restoring premium", e)
+            Log.e(TAG, "Error checking email", e)
             Result.failure(e)
         }
     }
 
     /**
      * Сохраняет покупку Premium в Firestore.
-     * Вызывается после успешной оплаты через ЮKassa.
+     * Вызывается после успешной оплаты.
      */
     suspend fun savePremiumPurchase(email: String, paymentId: String): Result<Unit> {
         return try {

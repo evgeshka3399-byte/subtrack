@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +37,7 @@ fun PremiumScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(24.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -44,31 +45,30 @@ fun PremiumScreen(
                 Icons.Default.Star,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(80.dp)
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "SubTrack Premium",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                modifier = Modifier.size(56.dp)
             )
             Spacer(Modifier.height(8.dp))
             Text(
+                "SubTrack Premium",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
                 "Разовая покупка — навсегда",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(16.dp))
 
             val features = listOf(
                 "Безлимит подписок",
                 "Безлимит отмен",
                 "Без рекламы",
-                "4-й график «Область»",
-                "Прогноз на 24 месяца",
+                "График «Область»",
+                "Прогноз 24 месяца",
                 "Все 5 уровней",
-                "Напоминания за 1/2/3/7 дней",
+                "Напоминания 1/2/3/7",
                 "Экспорт CSV",
                 "Золотая иконка"
             )
@@ -77,45 +77,48 @@ fun PremiumScreen(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.Check,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.secondary
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Text(feature, style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        feature,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(16.dp))
 
             Button(
                 onClick = { /* TODO: интеграция оплаты */ },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(48.dp),
                 enabled = false,
                 shape = MaterialTheme.shapes.large
             ) {
                 Text("Скоро — 299 ₽", fontWeight = FontWeight.Bold)
             }
 
-            Spacer(Modifier.height(16.dp))
             Text(
                 "Оплата появится в следующем обновлении",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             TextButton(
                 onClick = onRestoreClick,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Восстановить покупку")
+                Text("Восстановить покупку", fontSize = 13.sp)
             }
         }
     }

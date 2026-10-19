@@ -19,7 +19,8 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun PremiumScreen(
     onBack: () -> Unit,
-    onRestoreClick: () -> Unit = {}
+    onRestoreClick: () -> Unit = {},
+    onBuyClick: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -97,21 +98,14 @@ fun PremiumScreen(
             Spacer(Modifier.height(16.dp))
 
             Button(
-                onClick = { /* TODO: интеграция оплаты */ },
+                onClick = onBuyClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = false,
                 shape = MaterialTheme.shapes.large
             ) {
-                Text("Скоро — 299 ₽", fontWeight = FontWeight.Bold)
+                Text("Купить за 299 ₽", fontWeight = FontWeight.Bold)
             }
-
-            Text(
-                "Оплата появится в следующем обновлении",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             Spacer(Modifier.height(4.dp))
             TextButton(

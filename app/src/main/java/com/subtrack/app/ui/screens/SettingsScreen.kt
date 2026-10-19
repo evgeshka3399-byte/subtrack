@@ -196,22 +196,6 @@ fun SettingsScreen(
                 subtitle = "SubTrack 1.0",
                 onClick = { showAboutDialog = true }
             )
-
-            // === ВРЕМЕННАЯ КНОПКА PREMIUM (для теста) ===
-            Divider()
-            SettingsItem(
-                icon = Icons.Default.Star,
-                title = if (isPremium) "Выключить Premium (тест)" else "Включить Premium (тест)",
-                subtitle = "Временная кнопка для проверки",
-                onClick = {
-                    if (isPremium) {
-                        viewModel.deactivatePremium()
-                    } else {
-                        viewModel.activatePremium()
-                    }
-                    showMessage = if (isPremium) "Premium выключен" else "Premium включён"
-                }
-            )
         }
     }
 

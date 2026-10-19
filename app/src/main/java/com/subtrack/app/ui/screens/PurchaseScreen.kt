@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.subtrack.app.data.FirebaseManager
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,20 +82,26 @@ fun PurchaseScreen(
                 onClick = {
                     if (email.isNotBlank() && email.contains("@")) {
                         isLoading = true
+                        message = null
                         scope.launch {
-                            // TODO: Здесь будет интеграция с ЮKassa
-                            // Пока — имитация успешной оплаты
                             val paymentId = "test_payment_${System.currentTimeMillis()}"
-                            val result = FirebaseManager.savePremiumPurchase(email, paymentId)
+                            
+                            // Таймаут 15 секунд, чтобы не висело вечно
+                            val result = withTimeoutOrNull(15000L) {
+                                FirebaseManager.savePremiumPurchase(email, paymentId)
+                            }
 
                             isLoading = false
 
-                            if (result.isSuccess) {
+                            if (result == null) {
+                                message = "Ошибка: Превышено время ожидания (проверьте интернет)"
+                            } else if (result.isSuccess) {
                                 viewModel.activatePremium()
                                 isSuccess = true
                                 message = "Оплата прошла успешно! Premium активирован."
                             } else {
-                                message = "Ошибка сохранения: ${result.exceptionOrNull()?.message}"
+                                val error = result.exceptionOrNull()?.message ?: "Неизвестная ошибка"
+                                message = "Ошибка: $error"
                             }
                         }
                     } else {

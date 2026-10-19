@@ -193,7 +193,7 @@ fun SettingsScreen(
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "О приложении",
-                subtitle = "SubTrack 1.0",
+                subtitle = "SubTrack 1.6",
                 onClick = { showAboutDialog = true }
             )
         }
@@ -364,7 +364,7 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text("SubTrack", fontWeight = FontWeight.Bold)
-                    Text("Версия 1.0")
+                    Text("Версия 1.6")
                     Spacer(Modifier.height(12.dp))
                     Text(
                         "Приложение помогает контролировать подписки и экономить деньги. " +

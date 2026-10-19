@@ -16,7 +16,10 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PremiumScreen(onBack: () -> Unit) {
+fun PremiumScreen(
+    onBack: () -> Unit,
+    onRestoreClick: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -106,6 +109,14 @@ fun PremiumScreen(onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(Modifier.height(8.dp))
+            TextButton(
+                onClick = onRestoreClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Восстановить покупку")
+            }
         }
     }
 }

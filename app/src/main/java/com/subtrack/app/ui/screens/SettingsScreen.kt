@@ -196,21 +196,6 @@ fun SettingsScreen(
                 subtitle = "SubTrack 1.0",
                 onClick = { showAboutDialog = true }
             )
-
-            Divider()
-            SettingsItem(
-                icon = Icons.Default.Star,
-                title = if (isPremium) "Выключить Premium (тест)" else "Включить Premium (тест)",
-                subtitle = "Временная кнопка для проверки",
-                onClick = {
-                    if (isPremium) {
-                        viewModel.deactivatePremium()
-                    } else {
-                        viewModel.activatePremium()
-                    }
-                    showMessage = if (isPremium) "Premium выключен" else "Premium включён"
-                }
-            )
         }
     }
 
@@ -387,7 +372,6 @@ fun SettingsScreen(
                         "Мы не подключаемся к банку и не передаём информацию третьим лицам."
                     )
                     Spacer(Modifier.height(16.dp))
-                    // === ССЫЛКА НА ПОЛИТИКУ КОНФИДЕНЦИАЛЬНОСТИ ===
                     Text(
                         "Политика конфиденциальности",
                         style = MaterialTheme.typography.bodyMedium,

@@ -1,20 +1,16 @@
 package com.subtrack.app.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.subtrack.app.data.Subscription
@@ -27,12 +23,6 @@ private val MONTH_NAMES_RU = listOf(
     "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
 )
 
-data class DailySpending(
-    val day: Int,
-    val amount: Double,
-    val subscriptions: List<String>
-)
-
 @Composable
 fun MonthlySpendingChart(
     subscriptions: List<Subscription>,
@@ -40,11 +30,7 @@ fun MonthlySpendingChart(
 ) {
     if (subscriptions.isEmpty()) {
         Box(modifier, contentAlignment = Alignment.Center) {
-            Text(
-                "Нет данных для графика",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("Нет данных для графика", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
@@ -55,14 +41,12 @@ fun MonthlySpendingChart(
     val monthName = MONTH_NAMES_RU[currentMonth]
     val daysInMonth = now.getActualMaximum(Calendar.DAY_OF_MONTH)
 
+    // Начало и конец текущего месяца
     val monthStart = Calendar.getInstance().apply {
         set(Calendar.YEAR, currentYear)
         set(Calendar.MONTH, currentMonth)
         set(Calendar.DAY_OF_MONTH, 1)
         set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
     }.timeInMillis
 
     val monthEnd = Calendar.getInstance().apply {
@@ -71,10 +55,9 @@ fun MonthlySpendingChart(
         set(Calendar.DAY_OF_MONTH, daysInMonth)
         set(Calendar.HOUR_OF_DAY, 23)
         set(Calendar.MINUTE, 59)
-        set(Calendar.SECOND, 59)
-        set(Calendar.MILLISECOND, 999)
     }.timeInMillis
 
+    // Собираем списания по дням
     val dailyMap = mutableMapOf<Int, MutableList<Pair<Double, String>>>()
 
     subscriptions.filter { !it.isCancelled }.forEach { sub ->
@@ -84,8 +67,7 @@ fun MonthlySpendingChart(
             if (paymentTime >= monthStart) {
                 val cal = Calendar.getInstance().apply { timeInMillis = paymentTime }
                 val day = cal.get(Calendar.DAY_OF_MONTH)
-                dailyMap.getOrPut(day) { mutableListOf() }
-                    .add(sub.price to sub.name)
+                dailyMap.getOrPut(day) { mutableListOf() }.add(sub.price to sub.name)
             }
             val cal = Calendar.getInstance().apply { timeInMillis = paymentTime }
             when (sub.cycle) {
@@ -103,138 +85,129 @@ fun MonthlySpendingChart(
 
     if (dailyMap.isEmpty()) {
         Box(modifier, contentAlignment = Alignment.Center) {
-            Text(
-                "В этом месяце списаний нет",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("В этом месяце списаний нет", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
 
-    val maxAmount = dailyMap.maxOf { it.value.sumOf { p -> p.first } }.coerceAtLeast(1.0)
     val totalMonth = dailyMap.values.sumOf { list -> list.sumOf { it.first } }
 
-    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val lineColor = MaterialTheme.colorScheme.primary
+    // Первый день месяца (день недели: 1=Пн, 7=Вс)
+    val firstDayCal = Calendar.getInstance().apply {
+        set(Calendar.YEAR, currentYear)
+        set(Calendar.MONTH, currentMonth)
+        set(Calendar.DAY_OF_MONTH, 1)
+    }
+    // Приводим к стандарту: Пн=0, Вт=1, ..., Вс=6
+    val firstDayOfWeek = (firstDayCal.get(Calendar.DAY_OF_WEEK) + 5) % 7
 
-    val animatedProgress by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(900),
-        label = "monthly_animation"
-    )
+    val days = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
 
     Column(modifier) {
-        // Заголовок: "Траты в месяц: Октябрь 2026 — 4950 ₽"
+        // Заголовок с суммой
         Text(
             "Траты в месяц: $monthName $currentYear — ${formatMoney(totalMonth)} ₽",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
+        Spacer(Modifier.height(16.dp))
+
+        // Дни недели
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            days.forEach { day ->
+                Text(
+                    day,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
 
-        Row(Modifier.weight(1f).fillMaxWidth()) {
-            Column(
-                Modifier
-                    .width(56.dp)
-                    .fillMaxHeight()
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    "${maxAmount.toInt()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor
-                )
-                Text(
-                    "${(maxAmount / 2).toInt()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor
-                )
-                Text("0", style = MaterialTheme.typography.labelSmall, color = labelColor)
-            }
+        // Сетка календаря
+        val totalCells = firstDayOfWeek + daysInMonth
+        val rows = (totalCells + 6) / 7 // округляем вверх
 
-            Spacer(Modifier.width(8.dp))
+        for (row in 0 until rows) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                for (col in 0..6) {
+                    val cellIndex = row * 7 + col
+                    val dayNumber = cellIndex - firstDayOfWeek + 1
 
-            Box(Modifier.weight(1f).fillMaxHeight()) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val w = size.width
-                    val h = size.height
+                    if (dayNumber in 1..daysInMonth) {
+                        val hasSpending = dailyMap.containsKey(dayNumber)
+                        val dayAmount = dailyMap[dayNumber]?.sumOf { it.first } ?: 0.0
 
-                    for (i in 0..2) {
-                        val y = h * i / 2f
-                        drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 2f)
-                    }
-
-                    val points = dailyMap.entries
-                        .sortedBy { it.key }
-                        .map { (day, list) ->
-                            val x = (day - 1).toFloat() / (daysInMonth - 1) * w
-                            val amount = list.sumOf { it.first }
-                            val y = h - (amount / maxAmount * h * animatedProgress).toFloat()
-                            Offset(x, y) to (amount to list.map { it.second })
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .padding(2.dp)
+                                .background(
+                                    color = if (hasSpending)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "$dayNumber",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (hasSpending) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (hasSpending)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (hasSpending) {
+                                    Text(
+                                        formatMoney(dayAmount),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 9.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                            }
                         }
-
-                    if (points.size > 1) {
-                        val path = Path().apply {
-                            moveTo(points.first().first.x, points.first().first.y)
-                            points.drop(1).forEach { lineTo(it.first.x, it.first.y) }
-                        }
-                        drawPath(path, lineColor, style = Stroke(width = 6f))
-                    }
-
-                    points.forEach { (offset, _) ->
-                        drawCircle(lineColor, radius = 12f, center = offset)
-                        drawCircle(Color.White, radius = 6f, center = offset)
+                    } else {
+                        // Пустая ячейка
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                        )
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
 
-        Row(
-            Modifier.fillMaxWidth().padding(start = 64.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            listOf(1, 5, 10, 15, 20, 25, daysInMonth).forEach { day ->
-                Text(
-                    "$day",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = labelColor,
-                    fontSize = 10.sp
-                )
-            }
-        }
-
-        Spacer(Modifier.height(4.dp))
+        // Список подписок с суммами
         Text(
-            "Дни списаний",
-            style = MaterialTheme.typography.labelSmall,
-            color = labelColor,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            "Детализация:",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold
         )
-
         Spacer(Modifier.height(8.dp))
 
         dailyMap.entries.sortedBy { it.key }.forEach { (day, list) ->
             Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     "$day числа:",
                     style = MaterialTheme.typography.bodySmall,
-                    color = labelColor
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    list.joinToString(", ") { it.second } +
-                            " — ${formatMoney(list.sumOf { it.first })} ₽",
+                    list.joinToString(", ") { it.second } + " — ${formatMoney(list.sumOf { it.first })} ₽",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground
                 )

@@ -197,11 +197,21 @@ fun MainScreen(
         composable("premium") {
             PremiumScreen(
                 onBack = { navController.popBackStack() },
-                onRestoreClick = { navController.navigate("restore_premium") }
+                onRestoreClick = { navController.navigate("restore_premium") },
+                onBuyClick = { navController.navigate("purchase") }
             )
         }
         composable("restore_premium") {
             RestorePremiumScreen(viewModel) { navController.popBackStack() }
+        }
+        composable("purchase") {
+            PurchaseScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onSuccess = {
+                    navController.popBackStack("root", inclusive = false)
+                }
+            )
         }
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.subtrack.app.data.Subscription
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
 
@@ -27,12 +28,16 @@ fun CancelScreen(
     onEditClick: (Long) -> Unit = {}
 ) {
     val subscriptions by viewModel.activeSubscriptions.collectAsState()
-    val sub = subscriptions.find { it.id == id }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var showSuccessDialog by remember { mutableStateOf(false) }
+    
+    // Запоминаем подписку, чтобы она не пропала при отмене
+    var savedSub by remember { mutableStateOf<Subscription?>(null) }
 
-    val isConnection = sub?.category == "Связь"
+    // Ищем подписку. Если она уже отменена (savedSub != null), используем сохраненную
+    val currentSub = savedSub ?: subscriptions.find { it.id == id }
+    val isConnection = currentSub?.category == "Связь"
 
     Scaffold(
         topBar = {
@@ -48,7 +53,7 @@ fun CancelScreen(
             )
         }
     ) { padding ->
-        if (sub == null) {
+        if (currentSub == null) {
             Box(
                 Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
@@ -64,9 +69,9 @@ fun CancelScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(sub.name, style = MaterialTheme.typography.headlineSmall)
+                Text(currentSub.name, style = MaterialTheme.typography.headlineSmall)
                 Text(
-                    "${"%.0f".format(sub.price)} ${sub.currency}",
+                    "${"%.0f".format(currentSub.price)} ${currentSub.currency}",
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -78,7 +83,7 @@ fun CancelScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                val instructions = getInstructions(sub.name, isConnection)
+                val instructions = getInstructions(currentSub.name, isConnection)
                 instructions.steps.forEachIndexed { index, step ->
                     Text(
                         "${index + 1}. $step",
@@ -106,7 +111,7 @@ fun CancelScreen(
 
                 if (isConnection) {
                     Button(
-                        onClick = { onEditClick(sub.id) },
+                        onClick = { onEditClick(currentSub.id) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium
                     ) {
@@ -115,8 +120,10 @@ fun CancelScreen(
                 } else {
                     Button(
                         onClick = {
+                            // Сохраняем подписку в памяти ПЕРЕД отменой
+                            savedSub = currentSub
                             scope.launch {
-                                viewModel.cancelSubscription(sub)
+                                viewModel.cancelSubscription(currentSub)
                                 showSuccessDialog = true
                             }
                         },
@@ -130,7 +137,9 @@ fun CancelScreen(
         }
     }
 
-    if (showSuccessDialog && sub != null) {
+    // Показываем диалог, используя сохраненную подписку
+    if (showSuccessDialog && savedSub != null) {
+        val subToShow = savedSub!!
         AlertDialog(
             onDismissRequest = {
                 // Не закрываем по клику вне окна
@@ -146,8 +155,8 @@ fun CancelScreen(
             },
             text = {
                 Text(
-                    "Ты только что сохранил ${"%.0f".format(sub.price)} ₽ в месяц. " +
-                    "Это ${"%.0f".format(sub.price * 12)} ₽ в год! Так держать 💪"
+                    "Ты только что сохранил ${"%.0f".format(subToShow.price)} ₽ в месяц. " +
+                    "Это ${"%.0f".format(subToShow.price * 12)} ₽ в год! Так держать 💪"
                 )
             },
             confirmButton = {

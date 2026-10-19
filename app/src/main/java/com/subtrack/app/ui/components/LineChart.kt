@@ -14,7 +14,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -26,7 +25,7 @@ data class LinePoint(
 enum class ForecastMode { AVERAGE, ACTUAL }
 
 @Composable
-fun LineChart(
+fun AreaChart(
     points: List<LinePoint>,
     lineColor: Color,
     modifier: Modifier = Modifier
@@ -49,13 +48,11 @@ fun LineChart(
     val animatedProgress by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(900),
-        label = "line_animation"
+        label = "area_animation"
     )
 
     Column(modifier) {
-        Row(
-            Modifier.weight(1f).fillMaxWidth()
-        ) {
+        Row(Modifier.weight(1f).fillMaxWidth()) {
             Column(
                 Modifier
                     .width(48.dp)
@@ -89,16 +86,24 @@ fun LineChart(
                     }
 
                     if (offsets.size > 1) {
-                        val path = Path().apply {
+                        val fillPath = Path().apply {
+                            moveTo(offsets.first().x, h)
+                            offsets.forEach { lineTo(it.x, it.y) }
+                            lineTo(offsets.last().x, h)
+                            close()
+                        }
+                        drawPath(path = fillPath, color = lineColor.copy(alpha = 0.3f))
+
+                        val linePath = Path().apply {
                             moveTo(offsets.first().x, offsets.first().y)
                             offsets.drop(1).forEach { lineTo(it.x, it.y) }
                         }
-                        drawPath(path, lineColor, style = Stroke(width = 6f))
+                        drawPath(path = linePath, color = lineColor, style = Stroke(width = 6f))
                     }
 
                     offsets.forEach { offset ->
-                        drawCircle(lineColor, radius = 10f, center = offset)
-                        drawCircle(Color.White, radius = 5f, center = offset)
+                        drawCircle(lineColor, radius = 8f, center = offset)
+                        drawCircle(Color.White, radius = 4f, center = offset)
                     }
                 }
             }
@@ -123,7 +128,6 @@ fun LineChart(
         }
 
         Spacer(Modifier.height(4.dp))
-
         Text(
             "Прогноз трат по месяцам",
             style = MaterialTheme.typography.labelSmall,
@@ -179,8 +183,6 @@ fun buildForecast(
                 var total = 0.0
                 activeSubs.forEach { sub ->
                     var paymentTime = sub.firstPaymentDate
-
-                    // Пропускаем прошлые и сегодняшние списания
                     var skipSafety = 0
                     while (paymentTime <= now && skipSafety < 500) {
                         val cal = java.util.Calendar.getInstance().apply {
@@ -199,7 +201,6 @@ fun buildForecast(
                         skipSafety++
                     }
 
-                    // Считаем будущие списания в границах месяца
                     var safety = 0
                     while (paymentTime < end && safety < 500) {
                         if (paymentTime >= start && paymentTime < end) {

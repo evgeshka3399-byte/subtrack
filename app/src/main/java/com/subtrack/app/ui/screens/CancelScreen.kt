@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.ui.SubTrackViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,7 +32,6 @@ fun CancelScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var showSuccessDialog by remember { mutableStateOf(false) }
-    var navigateAfterDialog by remember { mutableStateOf(false) }
 
     val isConnection = sub?.category == "Связь"
 
@@ -134,8 +134,7 @@ fun CancelScreen(
     if (showSuccessDialog && sub != null) {
         AlertDialog(
             onDismissRequest = {
-                showSuccessDialog = false
-                onDone()
+                // Не закрываем по клику вне окна
             },
             icon = {
                 Text("🎉", style = MaterialTheme.typography.headlineLarge)

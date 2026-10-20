@@ -14,7 +14,7 @@ android {
         applicationId = "com.subtrack.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
+        versionCode = 8
         versionName = "1.6"
     }
 

@@ -1,7 +1,6 @@
 package com.subtrack.app.ui
 
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -50,9 +49,6 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     val isPremium = viewModel.isPremium()
 
-    // Секретный счётчик тапов
-    var tapCount by remember { mutableStateOf(0) }
-
     LaunchedEffect(openTab) {
         if (openTab != null && openTab in tabs.indices) {
             pagerState.animateScrollToPage(openTab)
@@ -69,17 +65,7 @@ fun MainScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            // Секретная функция: 7 тапов по названию = Premium
-                            tapCount++
-                            if (tapCount >= 7) {
-                                viewModel.activatePremium()
-                                tapCount = 0
-                            }
-                        }
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isPremium) {
                             Icon(
                                 Icons.Default.Star,

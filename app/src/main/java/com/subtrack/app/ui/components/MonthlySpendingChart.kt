@@ -2,7 +2,6 @@ package com.subtrack.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,7 +15,6 @@ import androidx.compose.ui.unit.sp
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.util.formatMoney
 import java.util.Calendar
-import java.util.Locale
 
 private val MONTH_NAMES_RU = listOf(
     "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -92,13 +90,12 @@ fun MonthlySpendingChart(
 
     val totalMonth = dailyMap.values.sumOf { list -> list.sumOf { it.first } }
 
-    // Первый день месяца (день недели: 1=Пн, 7=Вс)
+    // Первый день месяца (день недели: Пн=0, Вт=1, ..., Вс=6)
     val firstDayCal = Calendar.getInstance().apply {
         set(Calendar.YEAR, currentYear)
         set(Calendar.MONTH, currentMonth)
         set(Calendar.DAY_OF_MONTH, 1)
     }
-    // Приводим к стандарту: Пн=0, Вт=1, ..., Вс=6
     val firstDayOfWeek = (firstDayCal.get(Calendar.DAY_OF_WEEK) + 5) % 7
 
     val days = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
@@ -130,7 +127,7 @@ fun MonthlySpendingChart(
 
         // Сетка календаря
         val totalCells = firstDayOfWeek + daysInMonth
-        val rows = (totalCells + 6) / 7 // округляем вверх
+        val rows = (totalCells + 6) / 7
 
         for (row in 0 until rows) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -175,7 +172,6 @@ fun MonthlySpendingChart(
                             }
                         }
                     } else {
-                        // Пустая ячейка
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -198,18 +194,25 @@ fun MonthlySpendingChart(
 
         dailyMap.entries.sortedBy { it.key }.forEach { (day, list) ->
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
                 Text(
                     "$day числа:",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
-                    list.joinToString(", ") { it.second } + " — ${formatMoney(list.sumOf { it.first })} ₽",
+                    list.joinToString(", ") { it.second } +
+                            " — ${formatMoney(list.sumOf { it.first })} ₽",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(2f),
+                    textAlign = TextAlign.End
                 )
             }
         }

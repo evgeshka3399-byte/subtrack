@@ -255,7 +255,6 @@ fun DashboardScreen(
                 }
             }
 
-            // Убрали фиксированную высоту (.height(400.dp))
             Card(
                 Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large
@@ -325,38 +324,7 @@ fun DashboardScreen(
                 )
             }
 
-            if (!isPremium) {
-                AdBanner()
-            }
-
-            if (!isPremium) {
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    )
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            "В Premium доступно больше",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "График «Область» и отсутствие рекламы — в Premium.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = onBuyPremium) {
-                            Text("Подробнее →")
-                        }
-                    }
-                }
-            }
+            // Реклама удалена отсюда, так как она теперь в MainScreen
         }
     }
 }

@@ -11,7 +11,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.subtrack.app"
+        applicationId = "com.subtrack.app2"
         minSdk = 26
         targetSdk = 34
         versionCode = 8

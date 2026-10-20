@@ -54,17 +54,15 @@ fun DashboardScreen(
     var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
     var sliderPosition by remember { mutableStateOf(0f) }
 
-    // Доступные графики: в Demo нет "Область"
     val availableCharts = remember(isPremium) {
         if (isPremium) ChartMode.values().toList()
         else ChartMode.values().filter { it != ChartMode.AREA }
     }
 
-    // Ползунок периода для «Область»
     var forecastMonths by remember { mutableStateOf(24) }
     val periodOptions = listOf(1, 6, 12, 24)
     val periodLabels = listOf("1 мес", "6 мес", "1 год", "2 года")
-    var periodIndex by remember { mutableStateOf(3) } // по умолчанию 2 года
+    var periodIndex by remember { mutableStateOf(3) }
 
     val slices = remember(subscriptions) {
         subscriptions.groupBy { it.category }
@@ -257,22 +255,23 @@ fun DashboardScreen(
                 }
             }
 
+            // Убрали фиксированную высоту (.height(400.dp))
             Card(
-                Modifier.fillMaxWidth().height(400.dp),
+                Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.large
             ) {
-                Box(Modifier.fillMaxSize().padding(16.dp)) {
+                Box(Modifier.fillMaxWidth().padding(16.dp)) {
                     when (chartMode) {
                         ChartMode.MONTHLY -> MonthlySpendingChart(
                             subscriptions = subscriptions,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        ChartMode.PIE -> PieChart(slices = slices, modifier = Modifier.fillMaxSize())
-                        ChartMode.BAR -> BarChart(slices = slices, modifier = Modifier.fillMaxSize())
+                        ChartMode.PIE -> PieChart(slices = slices, modifier = Modifier.fillMaxWidth().height(350.dp))
+                        ChartMode.BAR -> BarChart(slices = slices, modifier = Modifier.fillMaxWidth().height(350.dp))
                         ChartMode.AREA -> AreaChart(
                             points = forecast,
                             lineColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxWidth().height(350.dp)
                         )
                     }
                 }

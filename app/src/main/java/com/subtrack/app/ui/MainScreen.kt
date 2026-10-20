@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.subtrack.app.ui.components.AdBanner
 import com.subtrack.app.ui.screens.*
 import kotlinx.coroutines.launch
 
@@ -86,6 +87,11 @@ fun MainScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (!isPremium) {
+                AdBanner(modifier = Modifier.padding(8.dp))
+            }
         },
         floatingActionButton = {
             if (pagerState.currentPage == 1) {

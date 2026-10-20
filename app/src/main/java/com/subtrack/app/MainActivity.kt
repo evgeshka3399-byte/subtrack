@@ -19,12 +19,20 @@ import com.subtrack.app.ui.MainScreen
 import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.ui.theme.SubTrackTheme
+import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Читаем из Intent: open_cancel_id (экран отмены конкретной подписки)
+        // ВРЕМЕННО: Включаем Premium для скриншотов (только 20 октября 2026)
+        val today = Calendar.getInstance()
+        if (today.get(Calendar.YEAR) == 2026 && 
+            today.get(Calendar.MONTH) == Calendar.OCTOBER && 
+            today.get(Calendar.DAY_OF_MONTH) == 20) {
+            SettingsPrefs.setPremium(this, true)
+        }
+
         val openCancelId = intent?.getLongExtra("open_cancel_id", -1L)?.takeIf { it >= 0 }
 
         setContent {

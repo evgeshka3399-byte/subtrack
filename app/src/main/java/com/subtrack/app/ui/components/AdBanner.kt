@@ -23,13 +23,11 @@ fun AdBanner(modifier: Modifier = Modifier) {
             .padding(8.dp),
         factory = { context ->
             BannerAdView(context).apply {
-                // В версии 8.2.0 adUnitId передается при создании запроса
-                val adSize = BannerAdSize.stickySize(context, 320)
-                setAdSize(adSize)
+                // В SDK 8.2.0 используется BannerAdSize.sticky (свойство)
+                setAdSize(BannerAdSize.sticky)
                 
-                val adRequest = AdRequest.Builder()
-                    .setAdUnitId(YANDEX_AD_UNIT_ID)
-                    .build()
+                // adUnitId передаётся в AdRequest
+                val adRequest = AdRequest.Builder(YANDEX_AD_UNIT_ID).build()
                 loadAd(adRequest)
             }
         }

@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "com.subtrack.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.subtrack.app2"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.6"
+        versionCode = 9
+        versionName = "1.7"
     }
 
     signingConfigs {
@@ -64,13 +64,11 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("com.yandex.android:mobileads:7.1.0")
-    // Firebase BOM — управляет версиями всех Firebase-библиотек
+
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
-
-    // Firebase Auth — для входа по email и отправки кодов
     implementation("com.google.firebase:firebase-auth-ktx")
-
-    // Firestore — для хранения покупок
     implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // Yandex Mobile Ads SDK 8.6.0
+    implementation("com.yandex.android:mobileads:8.6.0")
 }

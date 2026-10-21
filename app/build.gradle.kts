@@ -64,7 +64,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-
+implementation("com.yandex.android:mobileads:8.2.0")
     // Firebase BOM — управляет версиями всех Firebase-библиотек
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
 

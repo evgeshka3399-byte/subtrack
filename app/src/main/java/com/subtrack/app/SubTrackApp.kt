@@ -4,7 +4,7 @@ import android.app.Application
 import com.subtrack.app.data.AppDatabase
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
-import com.yandex.mobile.ads.common.MobileAds
+import com.yandex.mobile.ads.common.YandexAds
 
 class SubTrackApp : Application() {
 
@@ -14,7 +14,7 @@ class SubTrackApp : Application() {
     override fun onCreate() {
         super.onCreate()
         NotificationScheduler.createChannel(this)
-        // Инициализация Yandex Mobile Ads SDK 8.6.0
-        MobileAds.initialize(this) {}
+        // В SDK 8.x MobileAds переименован в YandexAds
+        YandexAds.initialize(this) {}
     }
 }

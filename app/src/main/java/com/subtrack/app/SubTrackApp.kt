@@ -14,7 +14,7 @@ class SubTrackApp : Application() {
     override fun onCreate() {
         super.onCreate()
         NotificationScheduler.createChannel(this)
-        // Инициализация Yandex Mobile Ads SDK 7.1.0
+        // Инициализация Yandex Mobile Ads SDK 8.6.0
         MobileAds.initialize(this) {}
     }
 }

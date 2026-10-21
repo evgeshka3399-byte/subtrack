@@ -1,18 +1,18 @@
 package com.subtrack.app.ui.components
 
-import android.content.Context
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.yandex.mobile.ads.banner.BannerAdSize
 import com.yandex.mobile.ads.banner.BannerAdView
 import com.yandex.mobile.ads.common.AdRequest
 
 // TODO: Замени на свой AdUnitId из РСЯ / Простой монетизации
-private const val YANDEX_AD_UNIT_ID = "demo-banner-yandex" // <-- ВСТАВЬ СВОЙ ID СЮДА
+private const val YANDEX_AD_UNIT_ID = "demo-banner-yandex"
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
@@ -23,9 +23,14 @@ fun AdBanner(modifier: Modifier = Modifier) {
             .padding(8.dp),
         factory = { context ->
             BannerAdView(context).apply {
-                setAdUnitId(YANDEX_AD_UNIT_ID)
-                setAdSize(BannerAdSize.stickySize(context, 320))
-                loadAd(AdRequest.Builder().build())
+                // В версии 8.2.0 adUnitId передается при создании запроса
+                val adSize = BannerAdSize.stickySize(context, 320)
+                setAdSize(adSize)
+                
+                val adRequest = AdRequest.Builder()
+                    .setAdUnitId(YANDEX_AD_UNIT_ID)
+                    .build()
+                loadAd(adRequest)
             }
         }
     )

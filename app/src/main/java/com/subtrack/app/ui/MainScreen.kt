@@ -90,7 +90,7 @@ fun MainScreen(
         },
         bottomBar = {
             if (!isPremium) {
-                AdBanner(modifier = Modifier.padding(8.dp))
+              //  AdBanner(modifier = Modifier.padding(8.dp))
             }
         },
         floatingActionButton = {

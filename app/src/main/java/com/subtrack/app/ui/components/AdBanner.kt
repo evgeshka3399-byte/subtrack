@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+// ВАЖНО: проверь эти импорты
 import com.yandex.mobile.ads.banner.BannerAdSize
 import com.yandex.mobile.ads.banner.BannerAdView
 import com.yandex.mobile.ads.common.AdRequest
@@ -22,10 +23,9 @@ fun AdBanner(modifier: Modifier = Modifier) {
             .padding(8.dp),
         factory = { context ->
             BannerAdView(context).apply {
-                // Пробуем через свойство (Kotlin-синтаксис для Java-сеттеров)
-                adUnitId = YANDEX_AD_UNIT_ID
-                // stickySize с контекстом и шириной
-                adSize = BannerAdSize.stickySize(context, 320)
+                setAdUnitId(YANDEX_AD_UNIT_ID)
+                // В 8.6.0 stickySize требует контекст и ширину в dp
+                setAdSize(BannerAdSize.stickySize(context, 320))
                 loadAd(AdRequest.Builder().build())
             }
         }

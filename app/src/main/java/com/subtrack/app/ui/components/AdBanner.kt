@@ -22,10 +22,10 @@ fun AdBanner(modifier: Modifier = Modifier) {
             .padding(8.dp),
         factory = { context ->
             BannerAdView(context).apply {
-                // В 8.x adUnitId ставится на сам баннер
-                setAdUnitId(YANDEX_AD_UNIT_ID)
-                // stickySize принимает контекст и ширину в dp
-                setAdSize(BannerAdSize.stickySize(context, 320))
+                // Пробуем через свойство (Kotlin-синтаксис для Java-сеттеров)
+                adUnitId = YANDEX_AD_UNIT_ID
+                // stickySize с контекстом и шириной
+                adSize = BannerAdSize.stickySize(context, 320)
                 loadAd(AdRequest.Builder().build())
             }
         }

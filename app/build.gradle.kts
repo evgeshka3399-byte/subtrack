@@ -60,17 +60,16 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.7")
-        // Room — обновлено до 2.7.0 для совместимости с KSP 2.3.x
+ // Room — обновлено до 2.7.0 для совместимости с KSP 2.3.x
     implementation("androidx.room:room-runtime:2.7.0")
     implementation("androidx.room:room-ktx:2.7.0")
     ksp("androidx.room:room-compiler:2.7.0")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
-
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.my.target:mytarget-sdk:5.31.0")
-    // Yandex Mobile Ads SDK 8.6.0
+ // Yandex Mobile Ads SDK 8.6.0
     implementation("com.yandex.android:mobileads:8.6.0")
+    implementation("com.my.target:mytarget-sdk:5.51.2")
 }

@@ -70,7 +70,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-
+    implementation("com.my.target:mytarget-sdk:5.31.0")
     // Yandex Mobile Ads SDK 8.6.0
     implementation("com.yandex.android:mobileads:8.6.0")
 }

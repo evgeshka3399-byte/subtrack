@@ -1,5 +1,7 @@
 package com.subtrack.app.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -18,7 +21,9 @@ import androidx.compose.ui.unit.sp
 import com.subtrack.app.data.FirebaseManager
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
+
+// Ссылка на многоразовый счёт ЮKassa
+private const val YOOKASSA_PAYMENT_URL = "https://yookassa.ru/my/i/auB7MjNC-Q-K/l"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +33,7 @@ fun PurchaseScreen(
     onSuccess: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -82,26 +88,20 @@ fun PurchaseScreen(
                 onClick = {
                     if (email.isNotBlank() && email.contains("@")) {
                         isLoading = true
-                        message = null
+                        // Сохраняем email в Firestore (как заявку на покупку)
                         scope.launch {
-                            val paymentId = "test_payment_${System.currentTimeMillis()}"
+                            val paymentId = "pending_${System.currentTimeMillis()}"
+                            val result = FirebaseManager.savePremiumPurchase(email, paymentId)
                             
-                            // Таймаут 15 секунд, чтобы не висело вечно
-                            val result = withTimeoutOrNull(15000L) {
-                                FirebaseManager.savePremiumPurchase(email, paymentId)
-                            }
-
                             isLoading = false
-
-                            if (result == null) {
-                                message = "Ошибка: Превышено время ожидания (проверьте интернет)"
-                            } else if (result.isSuccess) {
-                                viewModel.activatePremium()
-                                isSuccess = true
-                                message = "Оплата прошла успешно! Premium активирован."
+                            
+                            if (result.isSuccess) {
+                                // Открываем браузер с оплатой
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
+                                context.startActivity(intent)
+                                message = "После оплаты нажмите «Я оплатил»"
                             } else {
-                                val error = result.exceptionOrNull()?.message ?: "Неизвестная ошибка"
-                                message = "Ошибка: $error"
+                                message = "Ошибка: ${result.exceptionOrNull()?.message}"
                             }
                         }
                     } else {
@@ -119,6 +119,20 @@ fun PurchaseScreen(
                 } else {
                     Text("Оплатить 299 ₽", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            
+            // Кнопка "Я оплатил" (показывает, что пользователь вернулся после оплаты)
+            TextButton(
+                onClick = {
+                    viewModel.activatePremium()
+                    isSuccess = true
+                    message = "Premium активирован! Спасибо за покупку."
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Я оплатил (нажмите после оплаты)")
             }
 
             if (isSuccess) {
@@ -140,19 +154,11 @@ fun PurchaseScreen(
                 Spacer(Modifier.height(16.dp))
                 Text(
                     message!!,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center
                 )
             }
-
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "Оплата будет добавлена в следующем обновлении",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }

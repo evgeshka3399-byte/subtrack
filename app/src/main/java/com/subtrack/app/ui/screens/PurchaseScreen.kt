@@ -178,7 +178,7 @@ fun PurchaseScreen(
                                 
                                 if (result == null) {
                                     // Таймаут — Firebase не ответил
-                                    message = "Firebase не отвечает. Проверьте подключение к Wi-Fi и попробуйте снова."
+                                    message = "Сервер не отвечает. Проверьте подключение к Wi-Fi и попробуйте снова."
                                 } else if (result.isSuccess) {
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
                                     context.startActivity(intent)

@@ -51,7 +51,6 @@ fun DashboardScreen(
     val yearlySaved = monthlySaved * 12
 
     var chartMode by remember { mutableStateOf(ChartMode.MONTHLY) }
-    var forecastMode by remember { mutableStateOf(ForecastMode.AVERAGE) }
     var sliderPosition by remember { mutableStateOf(0f) }
 
     val availableCharts = remember(isPremium) {
@@ -78,9 +77,10 @@ fun DashboardScreen(
             .sortedByDescending { it.value }
     }
 
-    val forecast = remember(subscriptions, forecastMode, forecastMonths) {
+    // Всегда используем ACTUAL (По факту)
+    val forecast = remember(subscriptions, forecastMonths) {
         if (subscriptions.isEmpty()) emptyList()
-        else buildForecast(subscriptions, forecastMonths, forecastMode)
+        else buildForecast(subscriptions, forecastMonths, ForecastMode.ACTUAL)
     }
 
     Column(
@@ -236,24 +236,7 @@ fun DashboardScreen(
                 }
             }
 
-            if (chartMode == ChartMode.AREA) {
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    SegmentedButton(
-                        selected = forecastMode == ForecastMode.AVERAGE,
-                        onClick = { forecastMode = ForecastMode.AVERAGE },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) {
-                        Text("Среднее")
-                    }
-                    SegmentedButton(
-                        selected = forecastMode == ForecastMode.ACTUAL,
-                        onClick = { forecastMode = ForecastMode.ACTUAL },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) {
-                        Text("По факту")
-                    }
-                }
-            }
+            // Убрали переключатель "Среднее / По факту"
 
             Card(
                 Modifier.fillMaxWidth(),
@@ -315,16 +298,44 @@ fun DashboardScreen(
                 CategoryBreakdown(slices)
             } else if (chartMode == ChartMode.AREA) {
                 Text(
-                    if (forecastMode == ForecastMode.AVERAGE)
-                        "Среднемесячная нагрузка. Все годовые платежи усреднены по 12 месяцам."
-                    else
-                        "Реальные списания по датам. Видны крупные годовые платежи.",
+                    "Реальные списания по датам. Видны крупные годовые платежи.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            // Реклама удалена отсюда, так как она теперь в MainScreen
+            if (!isPremium) {
+                AdBanner()
+            }
+
+            if (!isPremium) {
+                Card(
+                    Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(
+                            "В Premium доступно больше",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "График «Область» и отсутствие рекламы — в Premium.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        TextButton(onClick = onBuyPremium) {
+                            Text("Подробнее →")
+                        }
+                    }
+                }
+            }
         }
     }
 }

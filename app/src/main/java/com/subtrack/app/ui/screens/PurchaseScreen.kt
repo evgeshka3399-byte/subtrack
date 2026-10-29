@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.subtrack.app.data.FirebaseManager
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val YOOKASSA_PAYMENT_URL = "https://yookassa.ru/my/i/auB7MjNC-Q-K/l"
 
@@ -164,13 +165,21 @@ fun PurchaseScreen(
                             }
                             
                             isLoading = true
+                            message = null // Сбрасываем сообщение перед новой попыткой
+                            
                             scope.launch {
-                                val paymentId = "pending_${System.currentTimeMillis()}"
-                                val result = FirebaseManager.savePremiumPurchase(email, paymentId)
+                                // Таймаут 10 секунд на запрос в Firebase
+                                val result = withTimeoutOrNull(10000L) {
+                                    val paymentId = "pending_${System.currentTimeMillis()}"
+                                    FirebaseManager.savePremiumPurchase(email, paymentId)
+                                }
                                 
                                 isLoading = false
                                 
-                                if (result.isSuccess) {
+                                if (result == null) {
+                                    // Таймаут — Firebase не ответил
+                                    message = "Firebase не отвечает. Проверьте подключение к Wi-Fi и попробуйте снова."
+                                } else if (result.isSuccess) {
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
                                     context.startActivity(intent)
                                     isPaymentStarted = true

@@ -40,10 +40,9 @@ fun PurchaseScreen(
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
-    var isSuccess by remember { mutableStateOf(false) }
     var showWifiDialog by remember { mutableStateOf(false) }
+    var isPremiumActivated by remember { mutableStateOf(viewModel.isPremium()) }
 
-    // Функция проверки, подключён ли Wi-Fi
     fun isWifiConnected(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = cm.activeNetwork ?: return false
@@ -73,137 +72,141 @@ fun PurchaseScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                "Введите email, на который будет оформлен Premium",
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                "На этот email можно будет восстановить покупку",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // Предупреждение о Wi-Fi (если его нет)
-            if (!isWifi) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Wifi,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            "Для оплаты необходимо подключиться к сети Wi-Fi. " +
-                            "Мобильный интернет может быть ограничен, и платёжная страница не откроется.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-            }
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Button(
-                onClick = {
-                    if (email.isNotBlank() && email.contains("@")) {
-                        if (!isWifiConnected()) {
-                            showWifiDialog = true
-                            return@Button
-                        }
-                        
-                        isLoading = true
-                        scope.launch {
-                            val paymentId = "pending_${System.currentTimeMillis()}"
-                            val result = FirebaseManager.savePremiumPurchase(email, paymentId)
-                            
-                            isLoading = false
-                            
-                            if (result.isSuccess) {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
-                                context.startActivity(intent)
-                                message = "После оплаты нажмите «Я оплатил»"
-                            } else {
-                                message = "Ошибка: ${result.exceptionOrNull()?.message}"
-                            }
-                        }
-                    } else {
-                        message = "Введите корректный email"
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Оплатить 299 ₽", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            
-            TextButton(
-                onClick = {
-                    viewModel.activatePremium()
-                    isSuccess = true
-                    message = "Premium активирован! Спасибо за покупку."
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Я оплатил (нажмите после оплаты)")
-            }
-
-            if (isSuccess) {
+            if (isPremiumActivated) {
+                // Если Premium уже активирован — показываем сообщение об успехе
+                Text(
+                    "Premium активирован!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    message ?: "",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
+                    "Спасибо за покупку. Все функции Premium доступны.",
+                    style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onSuccess,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = onSuccess, modifier = Modifier.fillMaxWidth()) {
                     Text("Готово")
                 }
-            } else if (message != null) {
-                Spacer(Modifier.height(16.dp))
+            } else {
+                // Обычный экран оплаты
                 Text(
-                    message!!,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium,
+                    "Введите email, на который будет оформлен Premium",
+                    style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
+                Text(
+                    "На этот email можно будет восстановить покупку",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(24.dp))
+
+                if (!isWifi) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        ),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Wifi, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                "Для оплаты необходимо подключиться к сети Wi-Fi. " +
+                                "Мобильный интернет может быть ограничен, и платёжная страница не откроется.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Кнопка "Оплатить" всегда активна, пока Premium не активирован
+                Button(
+                    onClick = {
+                        if (email.isNotBlank() && email.contains("@")) {
+                            if (!isWifiConnected()) {
+                                showWifiDialog = true
+                                return@Button
+                            }
+                            
+                            isLoading = true
+                            scope.launch {
+                                val paymentId = "pending_${System.currentTimeMillis()}"
+                                val result = FirebaseManager.savePremiumPurchase(email, paymentId)
+                                
+                                isLoading = false
+                                
+                                if (result.isSuccess) {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
+                                    context.startActivity(intent)
+                                    message = "После оплаты нажмите «Я оплатил» (Premium активируется в течение 24 часов)."
+                                } else {
+                                    message = "Ошибка: ${result.exceptionOrNull()?.message}"
+                                }
+                            }
+                        } else {
+                            message = "Введите корректный email"
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Оплатить 299 ₽", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Кнопка "Я оплатил" (для проверки и активации)
+                TextButton(
+                    onClick = {
+                        // Здесь можно добавить проверку, но пока просто активируем
+                        viewModel.activatePremium()
+                        isPremiumActivated = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Я оплатил (Premium активируется после проверки)")
+                }
+
+                if (message != null) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        message!!,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

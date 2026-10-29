@@ -1,6 +1,9 @@
 package com.subtrack.app.ui.screens
 
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +26,6 @@ import com.subtrack.app.data.FirebaseManager
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
 
-// Ссылка на многоразовый счёт ЮKassa
 private const val YOOKASSA_PAYMENT_URL = "https://yookassa.ru/my/i/auB7MjNC-Q-K/l"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,6 +41,17 @@ fun PurchaseScreen(
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var isSuccess by remember { mutableStateOf(false) }
+    var showWifiDialog by remember { mutableStateOf(false) }
+
+    // Функция проверки, подключён ли Wi-Fi
+    fun isWifiConnected(): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+    }
+
+    val isWifi = remember { isWifiConnected() }
 
     Scaffold(
         topBar = {
@@ -73,6 +87,36 @@ fun PurchaseScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            // Предупреждение о Wi-Fi (если его нет)
+            if (!isWifi) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Wifi,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            "Для оплаты необходимо подключиться к сети Wi-Fi. " +
+                            "Мобильный интернет может быть ограничен, и платёжная страница не откроется.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -87,8 +131,12 @@ fun PurchaseScreen(
             Button(
                 onClick = {
                     if (email.isNotBlank() && email.contains("@")) {
+                        if (!isWifiConnected()) {
+                            showWifiDialog = true
+                            return@Button
+                        }
+                        
                         isLoading = true
-                        // Сохраняем email в Firestore (как заявку на покупку)
                         scope.launch {
                             val paymentId = "pending_${System.currentTimeMillis()}"
                             val result = FirebaseManager.savePremiumPurchase(email, paymentId)
@@ -96,7 +144,6 @@ fun PurchaseScreen(
                             isLoading = false
                             
                             if (result.isSuccess) {
-                                // Открываем браузер с оплатой
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
                                 context.startActivity(intent)
                                 message = "После оплаты нажмите «Я оплатил»"
@@ -123,7 +170,6 @@ fun PurchaseScreen(
 
             Spacer(Modifier.height(16.dp))
             
-            // Кнопка "Я оплатил" (показывает, что пользователь вернулся после оплаты)
             TextButton(
                 onClick = {
                     viewModel.activatePremium()
@@ -160,5 +206,26 @@ fun PurchaseScreen(
                 )
             }
         }
+    }
+
+    if (showWifiDialog) {
+        AlertDialog(
+            onDismissRequest = { showWifiDialog = false },
+            icon = { Icon(Icons.Default.Wifi, contentDescription = null) },
+            title = { Text("Требуется подключение к Wi-Fi") },
+            text = {
+                Text(
+                    "Для проведения оплаты необходимо подключиться к сети Wi-Fi. " +
+                    "Мобильный интернет может быть ограничен, и платёжная страница не откроется.\n\n" +
+                    "Пожалуйста, подключитесь к Wi-Fi и попробуйте снова.",
+                    textAlign = TextAlign.Center
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showWifiDialog = false }) {
+                    Text("Понятно")
+                }
+            }
+        )
     }
 }

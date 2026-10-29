@@ -41,7 +41,8 @@ fun PurchaseScreen(
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var showWifiDialog by remember { mutableStateOf(false) }
-    var isPremiumActivated by remember { mutableStateOf(viewModel.isPremium()) }
+    var isPaymentStarted by remember { mutableStateOf(false) }
+    val isPremium = viewModel.isPremium()
 
     fun isWifiConnected(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -72,8 +73,8 @@ fun PurchaseScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (isPremiumActivated) {
-                // Если Premium уже активирован — показываем сообщение об успехе
+            if (isPremium) {
+                // Если Premium уже активирован — только сообщение
                 Text(
                     "Premium активирован!",
                     style = MaterialTheme.typography.headlineSmall,
@@ -89,6 +90,25 @@ fun PurchaseScreen(
                 Spacer(Modifier.height(24.dp))
                 Button(onClick = onSuccess, modifier = Modifier.fillMaxWidth()) {
                     Text("Готово")
+                }
+            } else if (isPaymentStarted) {
+                // Если оплата уже начата — показываем сообщение об ожидании
+                Text(
+                    "Спасибо!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Premium будет активирован в течение 24 часов после проверки платежа. " +
+                    "Если у вас есть вопросы, напишите на evgeshka3399@vk.com.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = onSuccess, modifier = Modifier.fillMaxWidth()) {
+                    Text("Понятно")
                 }
             } else {
                 // Обычный экран оплаты
@@ -143,7 +163,6 @@ fun PurchaseScreen(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Кнопка "Оплатить" всегда активна, пока Premium не активирован
                 Button(
                     onClick = {
                         if (email.isNotBlank() && email.contains("@")) {
@@ -162,7 +181,7 @@ fun PurchaseScreen(
                                 if (result.isSuccess) {
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(YOOKASSA_PAYMENT_URL))
                                     context.startActivity(intent)
-                                    message = "После оплаты нажмите «Я оплатил» (Premium активируется в течение 24 часов)."
+                                    isPaymentStarted = true
                                 } else {
                                     message = "Ошибка: ${result.exceptionOrNull()?.message}"
                                 }
@@ -182,20 +201,6 @@ fun PurchaseScreen(
                     } else {
                         Text("Оплатить 299 ₽", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Кнопка "Я оплатил" (для проверки и активации)
-                TextButton(
-                    onClick = {
-                        // Здесь можно добавить проверку, но пока просто активируем
-                        viewModel.activatePremium()
-                        isPremiumActivated = true
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Я оплатил (Premium активируется после проверки)")
                 }
 
                 if (message != null) {

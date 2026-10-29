@@ -87,10 +87,6 @@ fun PurchaseScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(24.dp))
-                Button(onClick = onSuccess, modifier = Modifier.fillMaxWidth()) {
-                    Text("Готово")
-                }
             } else if (isPaymentStarted) {
                 // Если оплата уже начата — показываем сообщение об ожидании
                 Text(
@@ -106,10 +102,6 @@ fun PurchaseScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(24.dp))
-                Button(onClick = onSuccess, modifier = Modifier.fillMaxWidth()) {
-                    Text("Понятно")
-                }
             } else {
                 // Обычный экран оплаты
                 Text(

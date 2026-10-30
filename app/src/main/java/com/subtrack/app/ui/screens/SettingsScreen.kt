@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.subtrack.app.BuildConfig
 import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
 import com.subtrack.app.util.BackupManager
@@ -193,7 +194,7 @@ fun SettingsScreen(
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "О приложении",
-                subtitle = "SubTrack 1.6",
+                subtitle = "SubTrack ${BuildConfig.VERSION_NAME}",
                 onClick = { showAboutDialog = true }
             )
         }
@@ -364,7 +365,7 @@ fun SettingsScreen(
             text = {
                 Column {
                     Text("SubTrack", fontWeight = FontWeight.Bold)
-                    Text("Версия 1.6")
+                    Text("Версия ${BuildConfig.VERSION_NAME}")
                     Spacer(Modifier.height(12.dp))
                     Text(
                         "Приложение помогает контролировать подписки и экономить деньги. " +

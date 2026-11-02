@@ -67,18 +67,10 @@ fun MainScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isPremium) {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFFD700)
-                            )
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700))
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(
-                            "SubTrack",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
+                        Text("SubTrack", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                     }
                 },
                 actions = {
@@ -89,16 +81,14 @@ fun MainScreen(
             )
         },
         bottomBar = {
+            // Показываем баннер только если НЕТ Premium
             if (!isPremium) {
-               AdBanner(modifier = Modifier.padding(8.dp))
+                AdBanner(modifier = Modifier.padding(8.dp))
             }
         },
         floatingActionButton = {
             if (pagerState.currentPage == 1) {
-                FloatingActionButton(
-                    onClick = { navController.navigate("add") },
-                    shape = MaterialTheme.shapes.large
-                ) {
+                FloatingActionButton(onClick = { navController.navigate("add") }, shape = MaterialTheme.shapes.large) {
                     Icon(Icons.Default.Add, contentDescription = "Добавить подписку")
                 }
             }
@@ -113,54 +103,18 @@ fun MainScreen(
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = pagerState.currentPage == index,
-                        onClick = {
-                            scope.launch {
-                                pagerState.animateScrollToPage(
-                                    index,
-                                    animationSpec = tween(350)
-                                )
-                            }
-                        },
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index, animationSpec = tween(350)) } },
                         modifier = Modifier.fillMaxWidth(),
-                        text = {
-                            Text(
-                                title,
-                                textAlign = TextAlign.Center,
-                                fontWeight = if (pagerState.currentPage == index)
-                                    FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
+                        text = { Text(title, textAlign = TextAlign.Center, fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal) }
                     )
                 }
             }
 
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                 when (page) {
-                    0 -> DashboardScreen(
-                        viewModel = viewModel,
-                        onShowList = {
-                            scope.launch { pagerState.animateScrollToPage(1) }
-                        },
-                        onAddClick = { navController.navigate("add") },
-                        onBuyPremium = { navController.navigate("premium") }
-                    )
-                    1 -> SubscriptionListScreen(
-                        viewModel = viewModel,
-                        onEditClick = { id -> navController.navigate("edit/$id") },
-                        onCancelClick = { id -> navController.navigate("cancel/$id") },
-                        onAddInCategory = { category ->
-                            navController.navigate("add_in_category/$category")
-                        },
-                        onBuyPremium = { navController.navigate("premium") }
-                    )
-                    2 -> AchievementsScreen(
-                        viewModel = viewModel,
-                        onBack = {},
-                        onBuyPremium = { navController.navigate("premium") }
-                    )
+                    0 -> DashboardScreen(viewModel, onShowList = { scope.launch { pagerState.animateScrollToPage(1) } }, onAddClick = { navController.navigate("add") }, onBuyPremium = { navController.navigate("premium") })
+                    1 -> SubscriptionListScreen(viewModel, onEditClick = { id -> navController.navigate("edit/$id") }, onCancelClick = { id -> navController.navigate("cancel/$id") }, onAddInCategory = { category -> navController.navigate("add_in_category/$category") }, onBuyPremium = { navController.navigate("premium") })
+                    2 -> AchievementsScreen(viewModel, onBack = {}, onBuyPremium = { navController.navigate("premium") })
                 }
             }
         }
@@ -168,56 +122,13 @@ fun MainScreen(
 
     NavHost(navController = navController, startDestination = "root") {
         composable("root") { }
-        composable("add") {
-            AddEditSubscriptionScreen(viewModel, null, null) { navController.popBackStack() }
-        }
-        composable("add_in_category/{category}") { entry ->
-            val category = entry.arguments?.getString("category")
-            AddEditSubscriptionScreen(viewModel, null, category) { navController.popBackStack() }
-        }
-        composable("edit/{id}") { entry ->
-            val id = entry.arguments?.getString("id")?.toLongOrNull()
-            AddEditSubscriptionScreen(viewModel, id, null) {
-                navController.popBackStack("root", inclusive = false)
-            }
-        }
-        composable("cancel/{id}") { entry ->
-            val id = entry.arguments?.getString("id")?.toLongOrNull()
-            CancelScreen(
-                viewModel = viewModel,
-                id = id,
-                onDone = { navController.popBackStack() },
-                onEditClick = { subId ->
-                    navController.navigate("edit/$subId")
-                }
-            )
-        }
-        composable("settings") {
-            SettingsScreen(
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() },
-                onOpenPremium = { navController.navigate("premium") },
-                onThemeChanged = onThemeChanged
-            )
-        }
-        composable("premium") {
-            PremiumScreen(
-                onBack = { navController.popBackStack() },
-                onRestoreClick = { navController.navigate("restore_premium") },
-                onBuyClick = { navController.navigate("purchase") }
-            )
-        }
-        composable("restore_premium") {
-            RestorePremiumScreen(viewModel) { navController.popBackStack() }
-        }
-        composable("purchase") {
-            PurchaseScreen(
-                viewModel = viewModel,
-                onBack = { navController.popBackStack() },
-                onSuccess = {
-                    navController.popBackStack("root", inclusive = false)
-                }
-            )
-        }
+        composable("add") { AddEditSubscriptionScreen(viewModel, null, null) { navController.popBackStack() } }
+        composable("add_in_category/{category}") { entry -> val category = entry.arguments?.getString("category"); AddEditSubscriptionScreen(viewModel, null, category) { navController.popBackStack() } }
+        composable("edit/{id}") { entry -> val id = entry.arguments?.getString("id")?.toLongOrNull(); AddEditSubscriptionScreen(viewModel, id, null) { navController.popBackStack("root", inclusive = false) } }
+        composable("cancel/{id}") { entry -> val id = entry.arguments?.getString("id")?.toLongOrNull(); CancelScreen(viewModel, id, onDone = { navController.popBackStack() }, onEditClick = { subId -> navController.navigate("edit/$subId") }) }
+        composable("settings") { SettingsScreen(viewModel, onBack = { navController.popBackStack() }, onOpenPremium = { navController.navigate("premium") }, onThemeChanged = onThemeChanged) }
+        composable("premium") { PremiumScreen(onBack = { navController.popBackStack() }, onRestoreClick = { navController.navigate("restore_premium") }, onBuyClick = { navController.navigate("purchase") }) }
+        composable("restore_premium") { RestorePremiumScreen(viewModel) { navController.popBackStack() } }
+        composable("purchase") { PurchaseScreen(viewModel, onBack = { navController.popBackStack() }, onSuccess = { navController.popBackStack("root", inclusive = false) }) }
     }
 }

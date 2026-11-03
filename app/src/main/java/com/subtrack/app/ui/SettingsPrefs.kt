@@ -10,6 +10,7 @@ object SettingsPrefs {
     private const val KEY_CANCELLATION_COUNT = "cancellation_count"
     private const val KEY_BONUS_SLOTS = "bonus_slots"
     private const val KEY_BONUS_EXPIRY = "bonus_expiry"
+    private const val KEY_USER_EMAIL = "user_email" // <-- ДОБАВЛЕНО
 
     const val THEME_SYSTEM = "system"
     const val THEME_LIGHT = "light"
@@ -51,6 +52,17 @@ object SettingsPrefs {
     fun setPremium(context: Context, value: Boolean) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs.edit().putBoolean(KEY_IS_PREMIUM, value).apply()
+    }
+
+    // === EMAIL ДЛЯ ВОССТАНОВЛЕНИЯ ===
+    fun saveUserEmail(context: Context, email: String) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_USER_EMAIL, email).apply()
+    }
+
+    fun getUserEmail(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_USER_EMAIL, null)
     }
 
     // === СЧЁТЧИК ОТМЕН ===

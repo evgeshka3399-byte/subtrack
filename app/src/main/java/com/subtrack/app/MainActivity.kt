@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.subtrack.app.data.FirebaseManager
 import com.subtrack.app.ui.MainScreen
 import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
@@ -50,10 +51,32 @@ class MainActivity : ComponentActivity() {
                 contract = ActivityResultContracts.RequestPermission()
             ) { }
 
+            val app = application as SubTrackApp
+            val viewModel: SubTrackViewModel = viewModel(
+                factory = SubTrackViewModel.Factory(app, app.repository)
+            )
+
             LaunchedEffect(Unit) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
+
+                // --- АВТОПРОВЕРКА PREMIUM ПРИ ЗАПУСКЕ ---
+                // Если Premium ещё не активирован, проверяем email в Firebase
+                if (!viewModel.isPremium()) {
+                    val savedEmail = SettingsPrefs.getUserEmail(context)
+                    if (savedEmail != null) {
+                        try {
+                            val result = FirebaseManager.checkEmailInPremium(savedEmail)
+                            if (result.isSuccess && result.getOrNull() == true) {
+                                viewModel.activatePremium()
+                            }
+                        } catch (e: Exception) {
+                            // Игнорируем ошибки сети, чтобы приложение не падало
+                        }
+                    }
+                }
+                // ----------------------------------------
             }
 
             SubTrackTheme(darkTheme = darkTheme) {
@@ -61,10 +84,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val app = application as SubTrackApp
-                    val viewModel: SubTrackViewModel = viewModel(
-                        factory = SubTrackViewModel.Factory(app, app.repository)
-                    )
                     MainScreen(
                         viewModel = viewModel,
                         onThemeChanged = { themeKey++ },

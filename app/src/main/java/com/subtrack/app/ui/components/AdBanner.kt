@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.my.target.ads.MyTargetView
-import com.my.target.common.IAdLoadingError
+import com.my.target.common.IAdLoadingError // Правильный импорт
 
 private const val VK_SLOT_ID = 2098927
 private const val TAG = "AdBanner"
@@ -32,7 +32,8 @@ fun AdBanner(modifier: Modifier = Modifier) {
                     }
 
                     override fun onNoAd(error: IAdLoadingError, view: MyTargetView) {
-                        Log.w(TAG, "Реклама не найдена: ${error.message}")
+                        // В этой версии SDK у ошибки может не быть метода message()
+                        Log.w(TAG, "Реклама не найдена (код ошибки: ${error.code})")
                     }
 
                     override fun onShow(view: MyTargetView) {

@@ -27,7 +27,7 @@ import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-private const val YOOKASSA_PAYMENT_URL = "https://yookassa.ru/my/i/aug2ZI9vLF3g/l"
+private const val YOOKASSA_PAYMENT_URL = "https://yookassa.ru/my/i/auB7MjNC-Q-K/l"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

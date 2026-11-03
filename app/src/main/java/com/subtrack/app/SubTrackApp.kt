@@ -1,6 +1,7 @@
 package com.subtrack.app
 
 import android.app.Application
+import android.widget.Toast
 import com.subtrack.app.data.AppDatabase
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -16,14 +17,22 @@ class SubTrackApp : Application() {
         super.onCreate()
         NotificationScheduler.createChannel(this)
         
-        // 1. Включаем режим отладки (полезно для проверки)
+        // Показываем, что код запустился
+        Toast.makeText(this, "Инициализация VK Рекламы...", Toast.LENGTH_SHORT).show()
+        
+        // 1. Включаем режим отладки
         MyTargetManager.setDebugMode(true)
         
-        // 2. Настраиваем тестовое устройство с помощью нашего ID
-        val config = MyTargetConfig.Builder()
-            .withTestDevices("1ba91b67-489f-4b6f-af0a-d114c3ab5d40")
-            .build()
-        MyTargetManager.setSdkConfig(config)
+        // 2. Настраиваем тестовое устройство (наш ID)
+        try {
+            val config = MyTargetConfig.Builder()
+                .withTestDevices("1ba91b67-489f-4b6f-af0a-d114c3ab5d40")
+                .build()
+            MyTargetManager.setSdkConfig(config)
+            Toast.makeText(this, "Тестовое устройство добавлено", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Ошибка конфига: ${e.message}", Toast.LENGTH_LONG).show()
+        }
         
         // 3. Инициализируем SDK
         MyTargetManager.initSdk(this)

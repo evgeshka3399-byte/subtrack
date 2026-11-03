@@ -16,6 +16,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.subtrack.app.data.FirebaseManager
+import com.subtrack.app.ui.SettingsPrefs
 import com.subtrack.app.ui.SubTrackViewModel
 import kotlinx.coroutines.launch
 
@@ -25,6 +26,7 @@ fun RestorePremiumScreen(
     viewModel: SubTrackViewModel,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     var step by remember { mutableStateOf(1) } // 1 = email, 2 = подтверждение
@@ -79,6 +81,9 @@ fun RestorePremiumScreen(
                             if (email.isNotBlank() && email.contains("@")) {
                                 isLoading = true
                                 scope.launch {
+                                    // Сохраняем email для автопроверки при следующем запуске
+                                    SettingsPrefs.saveUserEmail(context, email)
+                                    
                                     val result = FirebaseManager.sendVerificationCode(email)
                                     isLoading = false
                                     if (result.isSuccess) {

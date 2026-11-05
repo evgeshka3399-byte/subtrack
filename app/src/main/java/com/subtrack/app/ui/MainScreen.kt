@@ -80,18 +80,7 @@ fun MainScreen(
                 }
             )
         },
-        bottomBar = {
-            if (!isPremium) {
-                // Жестко фиксируем высоту нижней панели, чтобы она не прыгала
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                ) {
-                    AdBanner(modifier = Modifier.fillMaxSize())
-                }
-            }
-        },
+        // Убираем bottomBar из Scaffold
         floatingActionButton = {
             if (pagerState.currentPage == 1) {
                 FloatingActionButton(onClick = { navController.navigate("add") }, shape = MaterialTheme.shapes.large) {
@@ -116,12 +105,27 @@ fun MainScreen(
                 }
             }
 
-            // Вот здесь важно: Pager занимает ВСЁ оставшееся место
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+            // Контент вкладок (Pager)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f) // Занимает всё свободное место
+            ) { page ->
                 when (page) {
                     0 -> DashboardScreen(viewModel, onShowList = { scope.launch { pagerState.animateScrollToPage(1) } }, onAddClick = { navController.navigate("add") }, onBuyPremium = { navController.navigate("premium") })
                     1 -> SubscriptionListScreen(viewModel, onEditClick = { id -> navController.navigate("edit/$id") }, onCancelClick = { id -> navController.navigate("cancel/$id") }, onAddInCategory = { category -> navController.navigate("add_in_category/$category") }, onBuyPremium = { navController.navigate("premium") })
                     2 -> AchievementsScreen(viewModel, onBack = {}, onBuyPremium = { navController.navigate("premium") })
+                }
+            }
+
+            // БАННЕР ВНИЗУ (за пределами Pager, чтобы он не зависел от вкладок)
+            if (!isPremium) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp) // Жесткая высота под 320x50
+                ) {
+                    AdBanner(modifier = Modifier.fillMaxSize())
                 }
             }
         }

@@ -83,7 +83,14 @@ fun MainScreen(
         bottomBar = {
             // Показываем баннер только если НЕТ Premium
             if (!isPremium) {
-                AdBanner(modifier = Modifier.padding(8.dp))
+                // navigationBarsPadding() защищает от наезда на кнопки телефона
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding() 
+                ) {
+                    AdBanner(modifier = Modifier.fillMaxWidth())
+                }
             }
         },
         floatingActionButton = {

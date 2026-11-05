@@ -93,8 +93,8 @@ fun MainScreen(
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    // Отступ снизу, чтобы контент не залезал под баннер и системные кнопки
-                    .padding(bottom = if (!isPremium) 50.dp else 0.dp)
+                    // Оставляем жесткий отступ снизу под баннер
+                    .padding(bottom = if (!isPremium) 60.dp else 0.dp) 
             ) {
                 PrimaryTabRow(
                     selectedTabIndex = pagerState.currentPage,
@@ -121,14 +121,14 @@ fun MainScreen(
             }
         }
 
-        // БАННЕР: прижат к низу и имеет отступ от системных кнопок
+        // БАННЕР
         if (!isPremium) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter) // Прижимаем к низу экрана
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .navigationBarsPadding() // <-- ЗАЩИТА ОТ СИСТЕМНЫХ КНОПОК
-                    .height(50.dp) // Фиксированная высота самого баннера
+                    .navigationBarsPadding() // Отступ от системных кнопок
+                    .height(60.dp) // Жесткая высота контейнера
             ) {
                 AdBanner(modifier = Modifier.fillMaxSize())
             }

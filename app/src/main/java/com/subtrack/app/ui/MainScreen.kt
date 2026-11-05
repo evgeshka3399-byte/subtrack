@@ -61,7 +61,7 @@ fun MainScreen(
         }
     }
 
-    // ГЛАВНЫЙ Column: сверху всё приложение, снизу - баннер
+    // Общий Column: сверху всё приложение (занимает всё место), снизу баннер (по своему размеру)
     Column(modifier = Modifier.fillMaxSize()) {
         
         // Всё приложение занимает всё место, кроме места под баннер
@@ -120,15 +120,14 @@ fun MainScreen(
             }
         }
 
-        // БАННЕР ВНИЗУ (вне Scaffold и Pager)
+        // БАННЕР ВНИЗУ (вне Scaffold и Pager, высота по содержимому)
         if (!isPremium) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding() // Отступ от системных кнопок
-                    .height(60.dp) // Жесткая высота контейнера
             ) {
-                AdBanner(modifier = Modifier.fillMaxSize())
+                AdBanner(modifier = Modifier.fillMaxWidth())
             }
         }
     }

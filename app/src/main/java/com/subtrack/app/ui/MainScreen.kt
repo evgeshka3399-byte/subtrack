@@ -81,15 +81,14 @@ fun MainScreen(
             )
         },
         bottomBar = {
-            // Показываем баннер только если НЕТ Premium
             if (!isPremium) {
-                // navigationBarsPadding() защищает от наезда на кнопки телефона
+                // Жестко фиксируем высоту нижней панели, чтобы она не прыгала
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .navigationBarsPadding() 
+                        .height(60.dp)
                 ) {
-                    AdBanner(modifier = Modifier.fillMaxWidth())
+                    AdBanner(modifier = Modifier.fillMaxSize())
                 }
             }
         },
@@ -117,7 +116,8 @@ fun MainScreen(
                 }
             }
 
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            // Вот здесь важно: Pager занимает ВСЁ оставшееся место
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
                 when (page) {
                     0 -> DashboardScreen(viewModel, onShowList = { scope.launch { pagerState.animateScrollToPage(1) } }, onAddClick = { navController.navigate("add") }, onBuyPremium = { navController.navigate("premium") })
                     1 -> SubscriptionListScreen(viewModel, onEditClick = { id -> navController.navigate("edit/$id") }, onCancelClick = { id -> navController.navigate("cancel/$id") }, onAddInCategory = { category -> navController.navigate("add_in_category/$category") }, onBuyPremium = { navController.navigate("premium") })

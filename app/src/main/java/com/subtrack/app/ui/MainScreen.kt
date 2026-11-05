@@ -80,7 +80,6 @@ fun MainScreen(
                 }
             )
         },
-        // Убираем bottomBar из Scaffold
         floatingActionButton = {
             if (pagerState.currentPage == 1) {
                 FloatingActionButton(onClick = { navController.navigate("add") }, shape = MaterialTheme.shapes.large) {
@@ -109,7 +108,7 @@ fun MainScreen(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
-                    .weight(1f) // Занимает всё свободное место
+                    .weight(1f) // Занимает всё оставшееся место
             ) { page ->
                 when (page) {
                     0 -> DashboardScreen(viewModel, onShowList = { scope.launch { pagerState.animateScrollToPage(1) } }, onAddClick = { navController.navigate("add") }, onBuyPremium = { navController.navigate("premium") })
@@ -118,12 +117,12 @@ fun MainScreen(
                 }
             }
 
-            // БАННЕР ВНИЗУ (за пределами Pager, чтобы он не зависел от вкладок)
+            // БАННЕР ВНИЗУ (только если не Premium)
             if (!isPremium) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp) // Жесткая высота под 320x50
+                        .height(50.dp) // Жесткая высота, чтобы не было "прыжков"
                 ) {
                     AdBanner(modifier = Modifier.fillMaxSize())
                 }

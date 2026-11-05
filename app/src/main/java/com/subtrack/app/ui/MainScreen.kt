@@ -61,71 +61,69 @@ fun MainScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isPremium) {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700))
-                                Spacer(Modifier.width(8.dp))
+    // ГЛАВНЫЙ Column: сверху всё приложение, снизу - баннер
+    Column(modifier = Modifier.fillMaxSize()) {
+        
+        // Всё приложение занимает всё место, кроме места под баннер
+        Box(modifier = Modifier.weight(1f)) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (isPremium) {
+                                    Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700))
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                Text("SubTrack", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
                             }
-                            Text("SubTrack", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        },
+                        actions = {
+                            IconButton(onClick = { navController.navigate("settings") }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Настройки")
+                            }
                         }
-                    },
-                    actions = {
-                        IconButton(onClick = { navController.navigate("settings") }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Настройки")
+                    )
+                },
+                floatingActionButton = {
+                    if (pagerState.currentPage == 1) {
+                        FloatingActionButton(onClick = { navController.navigate("add") }, shape = MaterialTheme.shapes.large) {
+                            Icon(Icons.Default.Add, contentDescription = "Добавить подписку")
                         }
-                    }
-                )
-            },
-            floatingActionButton = {
-                if (pagerState.currentPage == 1) {
-                    FloatingActionButton(onClick = { navController.navigate("add") }, shape = MaterialTheme.shapes.large) {
-                        Icon(Icons.Default.Add, contentDescription = "Добавить подписку")
                     }
                 }
-            }
-        ) { padding ->
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    // Оставляем жесткий отступ снизу под баннер
-                    .padding(bottom = if (!isPremium) 60.dp else 0.dp) 
-            ) {
-                PrimaryTabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(index, animationSpec = tween(350)) } },
-                            modifier = Modifier.fillMaxWidth(),
-                            text = { Text(title, textAlign = TextAlign.Center, fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal) }
-                        )
+            ) { padding ->
+                Column(Modifier.fillMaxSize().padding(padding)) {
+                    PrimaryTabRow(
+                        selectedTabIndex = pagerState.currentPage,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        tabs.forEachIndexed { index, title ->
+                            Tab(
+                                selected = pagerState.currentPage == index,
+                                onClick = { scope.launch { pagerState.animateScrollToPage(index, animationSpec = tween(350)) } },
+                                modifier = Modifier.fillMaxWidth(),
+                                text = { Text(title, textAlign = TextAlign.Center, fontWeight = if (pagerState.currentPage == index) FontWeight.Bold else FontWeight.Normal) }
+                            )
+                        }
                     }
-                }
 
-                HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
-                    when (page) {
-                        0 -> DashboardScreen(viewModel, onShowList = { scope.launch { pagerState.animateScrollToPage(1) } }, onAddClick = { navController.navigate("add") }, onBuyPremium = { navController.navigate("premium") })
-                        1 -> SubscriptionListScreen(viewModel, onEditClick = { id -> navController.navigate("edit/$id") }, onCancelClick = { id -> navController.navigate("cancel/$id") }, onAddInCategory = { category -> navController.navigate("add_in_category/$category") }, onBuyPremium = { navController.navigate("premium") })
-                        2 -> AchievementsScreen(viewModel, onBack = {}, onBuyPremium = { navController.navigate("premium") })
+                    HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+                        when (page) {
+                            0 -> DashboardScreen(viewModel, onShowList = { scope.launch { pagerState.animateScrollToPage(1) } }, onAddClick = { navController.navigate("add") }, onBuyPremium = { navController.navigate("premium") })
+                            1 -> SubscriptionListScreen(viewModel, onEditClick = { id -> navController.navigate("edit/$id") }, onCancelClick = { id -> navController.navigate("cancel/$id") }, onAddInCategory = { category -> navController.navigate("add_in_category/$category") }, onBuyPremium = { navController.navigate("premium") })
+                            2 -> AchievementsScreen(viewModel, onBack = {}, onBuyPremium = { navController.navigate("premium") })
+                        }
                     }
                 }
             }
         }
 
-        // БАННЕР
+        // БАННЕР ВНИЗУ (вне Scaffold и Pager)
         if (!isPremium) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding() // Отступ от системных кнопок
                     .height(60.dp) // Жесткая высота контейнера

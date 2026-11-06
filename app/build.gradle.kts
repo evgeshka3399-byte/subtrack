@@ -72,5 +72,5 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
  // Yandex Mobile Ads SDK 8.6.0
     implementation("com.yandex.android:mobileads:8.6.0")
-    implementation("com.my.target:mytarget-sdk:5.51.2")
+    implementation("com.my.target:mytarget-sdk:5.45.3")
 }

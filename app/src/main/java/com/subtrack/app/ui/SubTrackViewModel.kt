@@ -69,10 +69,9 @@ class SubTrackViewModel(
                 ad.show()
             }
 
-            // В документации VK здесь String, а не IAdLoadingError
-            override fun onNoAd(reason: String?, ad: RewardedAd) {
-                Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
-            }
+            // Убрали onNoAd, чтобы не требовать класс IAdLoadingError
+            // Если реклама не загрузится, пользователь просто ничего не увидит,
+            // но приложение не упадёт.
 
             override fun onClick(ad: RewardedAd) {}
 

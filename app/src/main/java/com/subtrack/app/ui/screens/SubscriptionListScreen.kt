@@ -54,6 +54,7 @@ fun SubscriptionListScreen(
     var showSubscriptionLimitDialog by remember { mutableStateOf(false) }
     var showCancellationLimitDialog by remember { mutableStateOf(false) }
     var pendingCategory by remember { mutableStateOf<String?>(null) }
+    var pendingCancelId by remember { mutableStateOf<Long?>(null) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -108,6 +109,7 @@ fun SubscriptionListScreen(
                             if (viewModel.canCancelSubscription()) {
                                 onCancelClick(sub.id)
                             } else {
+                                pendingCancelId = sub.id
                                 showCancellationLimitDialog = true
                             }
                         },
@@ -118,200 +120,86 @@ fun SubscriptionListScreen(
         }
     }
 
+    // ДИАЛОГ ЛИМИТА ПОДПИСОК
     if (showSubscriptionLimitDialog) {
-        SubscriptionLimitDialog(
-            onBuyPremium = {
+        AlertDialog(
+            onDismissRequest = {
                 showSubscriptionLimitDialog = false
                 pendingCategory = null
-                onBuyPremium()
             },
-            onWatchAd = {
-                showSubscriptionLimitDialog = false
-                viewModel.addBonusSlotForAd()
-                val cat = pendingCategory
-                pendingCategory = null
-                if (cat != null) {
-                    onAddInCategory(cat)
-                }
-            },
-            onDismiss = {
-                showSubscriptionLimitDialog = false
-                pendingCategory = null
-            }
-        )
-    }
-
-    if (showCancellationLimitDialog) {
-        CancellationLimitDialog(
-            onBuyPremium = {
-                showCancellationLimitDialog = false
-                onBuyPremium()
-            },
-            onDismiss = {
-                showCancellationLimitDialog = false
-            }
-        )
-    }
-}
-
-@Composable
-fun CategoryCard(
-    category: String,
-    count: Int,
-    monthlyTotal: Double,
-    color: androidx.compose.ui.graphics.Color,
-    isExpanded: Boolean,
-    onToggle: () -> Unit,
-    onAddInCategory: () -> Unit
-) {
-    val rotation by animateFloatAsState(
-        targetValue = if (isExpanded) 0f else -90f,
-        label = "rotation"
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = color.copy(alpha = 0.12f)
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { onToggle() }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                Modifier
-                    .size(14.dp)
-                    .background(color, CircleShape)
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    category,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-                Text(
-                    if (count == 0) "Нет подписок — нажми, чтобы добавить"
-                    else "$count · ${formatMoney(monthlyTotal)} ₽/мес",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (count > 0) {
-                Icon(
-                    Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.rotate(rotation)
-                )
-            } else {
-                Text(
-                    "+",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = color,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SubscriptionCard(
-    sub: Subscription,
-    color: androidx.compose.ui.graphics.Color,
-    onEditClick: (Long) -> Unit,
-    onCancelClick: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale("ru"))
-    val daysLeft = daysUntil(sub.nextPaymentDate)
-    val isTrialActive = sub.hasTrial && sub.trialEndDate != null &&
-            sub.trialEndDate > System.currentTimeMillis()
-    val isConnection = sub.category == "Связь"
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            sub.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (isTrialActive) {
-                            Spacer(Modifier.width(8.dp))
-                            Surface(
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.secondaryContainer
-                            ) {
-                                Text(
-                                    "Пробный",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                )
+            title = { Text("Лимит подписок") },
+            text = { Text("Вы достигли лимита в 5 активных подписок.\n\nПосмотрите короткое видео, чтобы добавить ещё одну подписку бесплатно.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSubscriptionLimitDialog = false
+                        viewModel.showRewardedAd {
+                            // Награда получена — выдаем бонусный слот
+                            viewModel.addBonusSlotForAd()
+                            val cat = pendingCategory
+                            pendingCategory = null
+                            if (cat != null) {
+                                onAddInCategory(cat)
                             }
                         }
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        if (isTrialActive)
-                            "Сейчас: 0 ₽ (до ${dateFormat.format(Date(sub.trialEndDate!!))})"
-                        else
-                            "${formatMoney(sub.price)} ${sub.currency} · ${cycleLabel(sub.cycle)}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        "Списание: ${dateFormat.format(Date(sub.nextPaymentDate))} (через $daysLeft дн.)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                ) {
+                    Text("Посмотреть видео")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showSubscriptionLimitDialog = false
+                        pendingCategory = null
+                        onBuyPremium()
+                    }
+                ) {
+                    Text("Купить Premium")
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { onEditClick(sub.id) },
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null,
-                        modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Изменить")
-                }
-                OutlinedButton(
-                    onClick = onCancelClick,
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = color)
-                ) {
-                    Text(if (isConnection) "Сменить тариф" else "Отменить подписку")
-                }
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Удалить")
-                }
-            }
-        }
+        )
     }
-}
 
-fun cycleLabel(cycle: String): String = when (cycle) {
-    "MONTHLY" -> "мес"
-    "QUARTERLY" -> "3 мес"
-    "HALF_YEARLY" -> "6 мес"
-    "YEARLY" -> "год"
-    "CUSTOM" -> "кастом"
-    else -> cycle
+    // ДИАЛОГ ЛИМИТА ОТМЕН
+    if (showCancellationLimitDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showCancellationLimitDialog = false
+                pendingCancelId = null
+            },
+            title = { Text("Лимит отмен") },
+            text = { Text("Вы достигли лимита в 5 отмен.\n\nПосмотрите короткое видео, чтобы отменить подписку бесплатно.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCancellationLimitDialog = false
+                        viewModel.showRewardedAd {
+                            // Награда получена — даем возможность отменить
+                            // Увеличиваем лимит отмен
+                            SettingsPrefs.incrementCancellationCount(getApplication<Application>()) // Временный костыль
+                            val id = pendingCancelId
+                            pendingCancelId = null
+                            if (id != null) {
+                                onCancelClick(id)
+                            }
+                        }
+                    }
+                ) {
+                    Text("Посмотреть видео")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showCancellationLimitDialog = false
+                        pendingCancelId = null
+                        onBuyPremium()
+                    }
+                ) {
+                    Text("Купить Premium")
+                }
+            }
+        )
+    }
 }

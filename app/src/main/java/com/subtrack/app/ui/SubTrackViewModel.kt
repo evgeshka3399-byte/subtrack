@@ -1,10 +1,12 @@
 package com.subtrack.app.ui
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.my.target.ads.RewardedAd
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -18,6 +20,9 @@ class SubTrackViewModel(
     application: Application,
     private val repository: SubscriptionRepository
 ) : AndroidViewModel(application) {
+
+    // ID рекламного блока для Rewarded (видео за вознаграждение)
+    private val REWARDED_SLOT_ID = 2104786
 
     val activeSubscriptions: StateFlow<List<Subscription>> =
         repository.activeSubscriptions.stateIn(
@@ -55,6 +60,43 @@ class SubTrackViewModel(
         SettingsPrefs.addBonusSlot(getApplication())
     }
 
+    /**
+     * Загружает и показывает Rewarded-рекламу.
+     * @param onRewardEarned вызывается, если пользователь досмотрел рекламу до конца.
+     */
+    fun showRewardedAd(onRewardEarned: () -> Unit) {
+        val context = getApplication<Application>()
+        
+        // Создаем Rewarded-рекламу
+        val rewardedAd = RewardedAd(context, REWARDED_SLOT_ID)
+        
+        // Устанавливаем слушатель
+        rewardedAd.setListener(object : RewardedAd.RewardedAdListener {
+            override fun onLoad(ad: RewardedAd) {
+                // Реклама загружена, показываем её
+                ad.show()
+            }
+
+            override fun onNoAd(reason: com.my.target.common.IAdLoadingError, ad: RewardedAd) {
+                Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onShow(ad: RewardedAd) {}
+
+            override fun onClick(ad: RewardedAd) {}
+
+            override fun onReward(ad: RewardedAd, reward: com.my.target.ads.Reward) {
+                // Пользователь досмотрел рекламу — выдаем награду
+                onRewardEarned()
+            }
+
+            override fun onDismiss(ad: RewardedAd) {}
+        })
+        
+        // Загружаем рекламу
+        rewardedAd.load()
+    }
+
     fun activatePremium() {
         val context = getApplication<Application>()
         SettingsPrefs.setPremium(context, true)
@@ -79,12 +121,6 @@ class SubTrackViewModel(
         }
     }
 
-    /**
-     * Смена тарифа (для категории «Связь»).
-     * @param oldSub старая подписка
-     * @param newName новое название (оператор)
-     * @param newPrice новая цена
-     */
     fun changeTariff(
         oldSub: Subscription,
         newName: String,
@@ -96,14 +132,12 @@ class SubTrackViewModel(
         val nameChanged = oldName != newName
         val priceDiff = oldPrice - newPrice
 
-        // Формируем название записи в истории
         val recordName = if (nameChanged) {
             "Смена оператора: $oldName → $newName"
         } else {
             "Смена тарифа: $oldName"
         }
 
-        // Если цена стала ниже — записываем разницу
         if (priceDiff > 0) {
             val savingsRecord = Subscription(
                 id = 0,
@@ -121,7 +155,6 @@ class SubTrackViewModel(
             )
             repository.add(savingsRecord)
         } else if (nameChanged) {
-            // Если название изменилось, но цена выросла — всё равно пишем «Смена оператора» с нулевой разницей
             val record = Subscription(
                 id = 0,
                 name = recordName,
@@ -139,7 +172,6 @@ class SubTrackViewModel(
             repository.add(record)
         }
 
-        // Обновляем активную подписку
         val updated = oldSub.copy(name = newName, price = newPrice)
         repository.update(updated)
         SettingsPrefs.incrementCancellationCount(context)

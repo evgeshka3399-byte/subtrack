@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.my.target.ads.RewardedAd
+import com.my.target.ads.Reward
+import com.my.target.common.IAdLoadingError
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -21,7 +23,6 @@ class SubTrackViewModel(
     private val repository: SubscriptionRepository
 ) : AndroidViewModel(application) {
 
-    // ID рекламного блока для Rewarded (видео за вознаграждение)
     private val REWARDED_SLOT_ID = 2104786
 
     val activeSubscriptions: StateFlow<List<Subscription>> =
@@ -60,40 +61,30 @@ class SubTrackViewModel(
         SettingsPrefs.addBonusSlot(getApplication())
     }
 
-    /**
-     * Загружает и показывает Rewarded-рекламу.
-     * @param onRewardEarned вызывается, если пользователь досмотрел рекламу до конца.
-     */
     fun showRewardedAd(onRewardEarned: () -> Unit) {
         val context = getApplication<Application>()
-        
-        // Создаем Rewarded-рекламу
-        val rewardedAd = RewardedAd(context, REWARDED_SLOT_ID)
-        
-        // Устанавливаем слушатель
+        val rewardedAd = RewardedAd(REWARDED_SLOT_ID, context)
+
         rewardedAd.setListener(object : RewardedAd.RewardedAdListener {
             override fun onLoad(ad: RewardedAd) {
-                // Реклама загружена, показываем её
                 ad.show()
             }
 
-            override fun onNoAd(reason: com.my.target.common.IAdLoadingError, ad: RewardedAd) {
+            override fun onNoAd(reason: IAdLoadingError, ad: RewardedAd) {
                 Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
             }
 
-            override fun onShow(ad: RewardedAd) {}
-
             override fun onClick(ad: RewardedAd) {}
 
-            override fun onReward(ad: RewardedAd, reward: com.my.target.ads.Reward) {
-                // Пользователь досмотрел рекламу — выдаем награду
-                onRewardEarned()
-            }
+            override fun onDisplay(ad: RewardedAd) {}
 
             override fun onDismiss(ad: RewardedAd) {}
+
+            override fun onReward(reward: Reward, ad: RewardedAd) {
+                onRewardEarned()
+            }
         })
-        
-        // Загружаем рекламу
+
         rewardedAd.load()
     }
 

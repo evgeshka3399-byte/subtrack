@@ -69,9 +69,10 @@ class SubTrackViewModel(
                 ad.show()
             }
 
-            // Убрали onNoAd, чтобы не требовать класс IAdLoadingError
-            // Если реклама не загрузится, пользователь просто ничего не увидит,
-            // но приложение не упадёт.
+            // В версии 5.45.3 здесь String, как в документации
+            override fun onNoAd(reason: String?, ad: RewardedAd) {
+                Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
+            }
 
             override fun onClick(ad: RewardedAd) {}
 

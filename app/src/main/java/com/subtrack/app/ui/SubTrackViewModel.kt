@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.my.target.ads.RewardedAd
 import com.my.target.ads.Reward
-import com.my.target.common.IAdLoadingError
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -70,7 +69,8 @@ class SubTrackViewModel(
                 ad.show()
             }
 
-            override fun onNoAd(reason: IAdLoadingError, ad: RewardedAd) {
+            // В документации VK здесь String, а не IAdLoadingError
+            override fun onNoAd(reason: String?, ad: RewardedAd) {
                 Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
             }
 

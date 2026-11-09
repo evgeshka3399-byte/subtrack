@@ -32,6 +32,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+        // Добавляем правила ProGuard, чтобы класс SubTrackApp точно не удалился
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
     }

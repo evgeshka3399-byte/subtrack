@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.my.target.ads.RewardedAd
 import com.my.target.ads.Reward
+import com.my.target.common.IAdLoadingError
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -69,16 +70,16 @@ class SubTrackViewModel(
                 ad.show()
             }
 
-            // String, как в документации VK
-            override fun onNoAd(reason: String?, ad: RewardedAd) {
+            override fun onNoAd(error: IAdLoadingError, ad: RewardedAd) {
                 Toast.makeText(context, "Реклама недоступна", Toast.LENGTH_SHORT).show()
             }
 
             override fun onClick(ad: RewardedAd) {}
+
             override fun onDisplay(ad: RewardedAd) {}
+
             override fun onDismiss(ad: RewardedAd) {}
 
-            // Добавляем onFailedToShow, потому что Gradle его требует
             override fun onFailedToShow(ad: RewardedAd) {
                 Toast.makeText(context, "Не удалось показать", Toast.LENGTH_SHORT).show()
             }
@@ -91,6 +92,141 @@ class SubTrackViewModel(
         rewardedAd.load()
     }
 
-    // ... остальные функции без изменений (activatePremium, addSubscription и т.д.)
-    // Они у тебя уже есть, я их не трогаю.
+    fun activatePremium() {
+        val context = getApplication<Application>()
+        SettingsPrefs.setPremium(context, true)
+        SettingsPrefs.resetCancellationCount(context)
+    }
+
+    fun deactivatePremium() {
+        val context = getApplication<Application>()
+        SettingsPrefs.setPremium(context, false)
+    }
+
+    fun addSubscription(subscription: Subscription) = viewModelScope.launch {
+        val id = repository.add(subscription)
+        scheduleNotification(subscription.copy(id = id))
+    }
+
+    fun updateSubscription(subscription: Subscription) = viewModelScope.launch {
+        repository.update(subscription)
+        NotificationScheduler.cancelReminder(getApplication(), subscription.id)
+        if (!subscription.isCancelled) {
+            scheduleNotification(subscription)
+        }
+    }
+
+    fun changeTariff(
+        oldSub: Subscription,
+        newName: String,
+        newPrice: Double
+    ) = viewModelScope.launch {
+        val context = getApplication<Application>()
+        val oldPrice = oldSub.price
+        val oldName = oldSub.name
+        val nameChanged = oldName != newName
+        val priceDiff = oldPrice - newPrice
+
+        val recordName = if (nameChanged) {
+            "Смена оператора: $oldName → $newName"
+        } else {
+            "Смена тарифа: $oldName"
+        }
+
+        if (priceDiff > 0) {
+            val savingsRecord = Subscription(
+                id = 0,
+                name = recordName,
+                price = priceDiff,
+                currency = oldSub.currency,
+                category = oldSub.category,
+                cycle = oldSub.cycle,
+                customCycleDays = oldSub.customCycleDays,
+                firstPaymentDate = System.currentTimeMillis(),
+                nextPaymentDate = System.currentTimeMillis(),
+                isCancelled = true,
+                cancelledDate = System.currentTimeMillis(),
+                notes = "Было: ${"%.0f".format(oldPrice)} ₽, стало: ${"%.0f".format(newPrice)} ₽"
+            )
+            repository.add(savingsRecord)
+        } else if (nameChanged) {
+            val record = Subscription(
+                id = 0,
+                name = recordName,
+                price = 0.0,
+                currency = oldSub.currency,
+                category = oldSub.category,
+                cycle = oldSub.cycle,
+                customCycleDays = oldSub.customCycleDays,
+                firstPaymentDate = System.currentTimeMillis(),
+                nextPaymentDate = System.currentTimeMillis(),
+                isCancelled = true,
+                cancelledDate = System.currentTimeMillis(),
+                notes = "Было: ${"%.0f".format(oldPrice)} ₽, стало: ${"%.0f".format(newPrice)} ₽"
+            )
+            repository.add(record)
+        }
+
+        val updated = oldSub.copy(name = newName, price = newPrice)
+        repository.update(updated)
+        SettingsPrefs.incrementCancellationCount(context)
+    }
+
+    fun cancelSubscription(subscription: Subscription) = viewModelScope.launch {
+        val context = getApplication<Application>()
+        val updated = subscription.copy(
+            isCancelled = true,
+            cancelledDate = System.currentTimeMillis()
+        )
+        repository.update(updated)
+        NotificationScheduler.cancelReminder(context, subscription.id)
+        SettingsPrefs.incrementCancellationCount(context)
+    }
+
+    fun restoreSubscription(subscription: Subscription) = viewModelScope.launch {
+        val updated = subscription.copy(isCancelled = false, cancelledDate = null)
+        repository.update(updated)
+        scheduleNotification(updated)
+    }
+
+    fun deleteSubscription(subscription: Subscription) = viewModelScope.launch {
+        repository.delete(subscription)
+        NotificationScheduler.cancelReminder(getApplication(), subscription.id)
+    }
+
+    fun clearAll() = viewModelScope.launch {
+        val context = getApplication<Application>()
+        activeSubscriptions.value.forEach {
+            NotificationScheduler.cancelReminder(context, it.id)
+            repository.delete(it)
+        }
+        cancelledSubscriptions.value.forEach {
+            NotificationScheduler.cancelReminder(context, it.id)
+            repository.delete(it)
+        }
+    }
+
+    private fun scheduleNotification(subscription: Subscription) {
+        val context = getApplication<Application>()
+        val daysBefore = SettingsPrefs.getReminderDays(context)
+        NotificationScheduler.scheduleReminder(
+            context = context,
+            subscriptionId = subscription.id,
+            name = subscription.name,
+            nextPaymentDate = subscription.nextPaymentDate,
+            daysBefore = daysBefore,
+            price = subscription.price,
+            currency = subscription.currency
+        )
+    }
+
+    companion object {
+        fun Factory(application: Application, repository: SubscriptionRepository): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return SubTrackViewModel(application, repository) as T
+                }
+            }
+    }
 }

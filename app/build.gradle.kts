@@ -71,9 +71,5 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     
     // Только myTarget, без Yandex
-    implementation("com.my.target:mytarget-sdk:5.45.3") {
-        version {
-            strictly("5.45.3")
-        }
-    }
+    implementation("com.my.target:mytarget-sdk:5.51.2") 
 }

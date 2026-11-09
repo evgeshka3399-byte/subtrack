@@ -1,4 +1,4 @@
-package com.subtrack.app
+package com.subtrack.app2
 
 import android.app.Application
 import com.subtrack.app.data.AppDatabase

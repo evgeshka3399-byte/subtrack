@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.subtrack.app2"
+    namespace = "com.subtrack.app"
     compileSdk = 35
 
     defaultConfig {

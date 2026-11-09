@@ -1,1 +1,2 @@
 -keep class com.subtrack.app.SubTrackApp { *; }
+-keep class com.subtrack.app.MainActivity { *; }

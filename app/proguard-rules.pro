@@ -1,1 +1,1 @@
-# Пустой файл — правила ProGuard не требуются
+-keep class com.subtrack.app.SubTrackApp { *; }

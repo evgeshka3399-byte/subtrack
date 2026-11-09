@@ -1,10 +1,13 @@
 package com.subtrack.app.ui
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.my.target.ads.RewardedAd
+import com.my.target.ads.Reward
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -18,6 +21,9 @@ class SubTrackViewModel(
     application: Application,
     private val repository: SubscriptionRepository
 ) : AndroidViewModel(application) {
+
+    // ID блока Rewarded из кабинета VK
+    private val REWARDED_SLOT_ID = 2104786
 
     val activeSubscriptions: StateFlow<List<Subscription>> =
         repository.activeSubscriptions.stateIn(
@@ -53,6 +59,40 @@ class SubTrackViewModel(
 
     fun addBonusSlotForAd() {
         SettingsPrefs.addBonusSlot(getApplication())
+    }
+
+    /**
+     * Загружает и показывает Rewarded-рекламу.
+     * @param onRewardEarned вызывается, если пользователь досмотрел рекламу до конца.
+     */
+    fun showRewardedAd(onRewardEarned: () -> Unit) {
+        val context = getApplication<Application>()
+        val rewardedAd = RewardedAd(REWARDED_SLOT_ID, context)
+
+        rewardedAd.setListener(object : RewardedAd.RewardedAdListener {
+            override fun onLoad(ad: RewardedAd) {
+                // Реклама загружена, показываем
+                ad.show()
+            }
+
+            // Сигнатура из документации VK: String, а не IAdLoadingError
+            override fun onNoAd(reason: String?, ad: RewardedAd) {
+                Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onClick(ad: RewardedAd) {}
+
+            override fun onDisplay(ad: RewardedAd) {}
+
+            override fun onDismiss(ad: RewardedAd) {}
+
+            override fun onReward(reward: Reward, ad: RewardedAd) {
+                // Пользователь досмотрел — выдаем награду
+                onRewardEarned()
+            }
+        })
+
+        rewardedAd.load()
     }
 
     fun activatePremium() {

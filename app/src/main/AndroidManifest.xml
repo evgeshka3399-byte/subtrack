@@ -12,7 +12,7 @@
         android:theme="@style/Theme.SubTrack">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.subtrack.app2.MainActivity"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:exported="true">

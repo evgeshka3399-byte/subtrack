@@ -71,7 +71,7 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.yandex.android:mobileads:8.6.0")
     
-    // ВОТ ГЛАВНОЕ ИЗМЕНЕНИЕ: используем strictly, чтобы Gradle не мог проигнорировать версию
+    // ЖЁСТКО фиксируем версию через strictly
     implementation("com.my.target:mytarget-sdk:5.45.3") {
         version {
             strictly("5.45.3")

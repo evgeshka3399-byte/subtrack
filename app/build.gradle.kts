@@ -69,9 +69,8 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.yandex.android:mobileads:8.6.0")
     
-    // ЖЁСТКО фиксируем версию через strictly
+    // Только myTarget, без Yandex
     implementation("com.my.target:mytarget-sdk:5.45.3") {
         version {
             strictly("5.45.3")

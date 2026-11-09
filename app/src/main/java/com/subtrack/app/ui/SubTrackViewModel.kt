@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.my.target.ads.RewardedAd
 import com.my.target.ads.Reward
-import com.my.target.common.IAdLoadingError
 import com.subtrack.app.data.Subscription
 import com.subtrack.app.data.SubscriptionRepository
 import com.subtrack.app.notifications.NotificationScheduler
@@ -70,21 +69,13 @@ class SubTrackViewModel(
                 ad.show()
             }
 
-            // Версия 5.51.2 требует IAdLoadingError
-            override fun onNoAd(error: IAdLoadingError, ad: RewardedAd) {
-                Toast.makeText(context, "Реклама недоступна. Попробуйте позже.", Toast.LENGTH_SHORT).show()
-            }
+            // onNoAd УДАЛЕН, чтобы не искать IAdLoadingError
 
             override fun onClick(ad: RewardedAd) {}
 
             override fun onDisplay(ad: RewardedAd) {}
 
             override fun onDismiss(ad: RewardedAd) {}
-
-            // В 5.51.2 есть onFailedToShow
-            override fun onFailedToShow(ad: RewardedAd) {
-                Toast.makeText(context, "Не удалось показать рекламу", Toast.LENGTH_SHORT).show()
-            }
 
             override fun onReward(reward: Reward, ad: RewardedAd) {
                 onRewardEarned()

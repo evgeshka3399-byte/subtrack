@@ -45,12 +45,7 @@ android {
     }
 }
 
-// Блок kotlin вынесен НАРУЖУ из android
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-    }
-}
+// Блок kotlin { compilerOptions { ... } } УДАЛЕН, чтобы не было ошибки
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
@@ -71,7 +66,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    // Yandex Mobile Ads SDK (возвращаем, как было)
     implementation("com.yandex.android:mobileads:8.6.0")
     implementation("com.my.target:mytarget-sdk:5.51.2")
 }

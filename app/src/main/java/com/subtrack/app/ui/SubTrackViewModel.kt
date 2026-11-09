@@ -1,7 +1,6 @@
 package com.subtrack.app.ui
 
 import android.app.Application
-import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -69,15 +68,23 @@ class SubTrackViewModel(
                 ad.show()
             }
 
-            // onNoAd УДАЛЕН, чтобы не искать IAdLoadingError
+            // Восстановлен и исправлен в соответствии с официальной сигнатурой: String reason
+            override fun onNoAd(reason: String?, ad: RewardedAd?) {
+                // Обработка случая отсутствия рекламы (No Ad)
+            }
 
-            override fun onClick(ad: RewardedAd) {}
+            // Добавлен в соответствии с требованиями компилятора
+            override fun onFailedToShow(ad: RewardedAd?) {
+                // Обработка случая неудачного показа
+            }
 
-            override fun onDisplay(ad: RewardedAd) {}
+            override fun onClick(ad: RewardedAd?) {}
 
-            override fun onDismiss(ad: RewardedAd) {}
+            override fun onDisplay(ad: RewardedAd?) {}
 
-            override fun onReward(reward: Reward, ad: RewardedAd) {
+            override fun onDismiss(ad: RewardedAd?) {}
+
+            override fun onReward(reward: Reward?, ad: RewardedAd?) {
                 onRewardEarned()
             }
         })

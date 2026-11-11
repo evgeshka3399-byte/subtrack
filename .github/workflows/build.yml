@@ -34,8 +34,8 @@ jobs:
 
       - name: Clean Gradle Cache
         run: |
-          rm -rf ~/.gradle/caches/modules-2/files-2.1/com.my.target
-          rm -rf ~/.gradle/caches/transforms-3
+          rm -rf ~/.gradle
+          rm -rf ~/.gradle
           gradle clean
 
       - name: Build Release APK

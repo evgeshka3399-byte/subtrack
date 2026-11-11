@@ -1,4 +1,4 @@
-package com.subtrack.app2
+package com.subtrack.app
 
 import android.Manifest
 import android.os.Build
